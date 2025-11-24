@@ -88,6 +88,24 @@ mvn spring-boot:run
 7. **ledger_item** - 账本明细表
 8. **payment_record** - 支付流水表
 
+### 账本状态说明
+
+账本（Ledger）有 5 种状态：
+
+| 状态码 | 枚举值 | 中文名称 | 说明 | 主页面显示 |
+|-------|--------|---------|------|-----------|
+| 1 | IN_PROGRESS | 进行中 | 账单创建，未收款 | ✅ 显示 |
+| 2 | PARTIAL | 部分缴费 | 已收部分款项，继续收款 | ✅ 显示 |
+| 3 | CLEARED | 已结清 | 完全缴费或抹零结清 | ❌ 不显示 |
+| 4 | ON_CREDIT | 赊账中 | 客户赊账，暂不催收 | ❌ 不显示 |
+| 5 | CLOSED | 已关闭 | 作废的账单 | ❌ 不显示 |
+
+**主页面查询规则**：只显示"正在处理中"的账单（IN_PROGRESS 和 PARTIAL）
+
+**客户详情页**：显示该客户所有状态的账单（包括赊账和已结清）
+
+详细的状态转换规则和业务逻辑请参考：[账本状态转换规则](docs/LEDGER_STATUS_TRANSITIONS.md)
+
 ### 通用字段（BaseEntity）
 
 所有表包含以下基础字段：
@@ -95,8 +113,8 @@ mvn spring-boot:run
 - `id`: 主键（自增）
 - `memo`: 备注
 - `status`: 状态（1=启用，0=禁用）
-- `created_at`: 创建时间
-- `updated_at`: 更新时间
+- `create_instant`: 创建时间
+- `modify_instant`: 修改时间
 
 ## ORM 策略
 

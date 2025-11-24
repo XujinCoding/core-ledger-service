@@ -1,7 +1,11 @@
 package com.coreledger.entity;
 
+import com.coreledger.config.converter.StatusConverter;
+import com.coreledger.enums.Status;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -16,7 +20,9 @@ import java.time.LocalDateTime;
  * @author Core Ledger Team
  * @since 1.0.0
  */
-@Data
+@Getter
+@Setter
+@ToString
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity implements Serializable {
@@ -38,22 +44,30 @@ public abstract class BaseEntity implements Serializable {
     private String memo;
 
     /**
-     * Status (1=Enabled, 0=Disabled, Default=1)
+     * Status (1=有效, 0=无效)
      */
     @Column(name = "status", nullable = false)
-    private Integer status = 1;
+    @Convert(converter = StatusConverter.class)
+    private Status status = Status.ACTIVE;
 
     /**
      * Created Timestamp (Auto-set on insert)
      */
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "create_instant", nullable = false, updatable = false)
+    private LocalDateTime createInstant;
 
     /**
-     * Updated Timestamp (Auto-set on update)
+     * Modified Timestamp (Auto-set on update)
      */
     @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    @Column(name = "modify_instant", nullable = false)
+    private LocalDateTime modifyInstant;
+
+    /**
+     * Version for Optimistic Locking
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version = 0;
 }

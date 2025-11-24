@@ -10,7 +10,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/core_ledger?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
@@ -25,7 +25,7 @@ spring:
     show-sql: true
     open-in-view: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
         implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
@@ -54,6 +54,28 @@ spring:
     default-property-inclusion: non_null
     serialization:
       write-dates-as-timestamps: false
+
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+# Wechat Miniapp Configuration
+wechat:
+  miniapp:
+    appid: wx38eaa619f18cad3d
+    secret: 038a23eda01e2cc33add856d6566b063
+    api-domain: https://api.weixin.qq.com
 
 # MyBatis Configuration
 mybatis:
