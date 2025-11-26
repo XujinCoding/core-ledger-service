@@ -637,6 +637,135 @@ public interface BeanMapperConf {
 
 ---
 
+### 11. Flyway 数据库迁移文件规范
+
+#### 文件命名规范
+
+```
+格式: V10.0.0.{yyyymmddhhmm}__{描述}.sql
+
+示例:
+V10.0.0.202511261430__create_sys_address_table.sql
+V10.0.0.202511261445__add_ledger_status_column.sql
+V10.0.0.202511271000__init_product_category_data.sql
+```
+
+**命名规则**:
+- ✅ 固定前缀: `V10.0.0.`
+- ✅ 时间戳: `{yyyymmddhhmm}` (年月日时分，如 202511261430)
+- ✅ 双下划线: `__`
+- ✅ 描述: 使用小写英文，下划线分隔，简明扼要
+- ❌ 禁止使用中文
+- ❌ 禁止使用空格
+
+#### 建表语句格式化规范
+
+**必须使用列对齐格式**:
+
+```sql
+-- ✅ 正确：列对齐格式
+CREATE TABLE `sys_address`
+(
+    `id`             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `parent_id`      BIGINT       NOT NULL DEFAULT 0 COMMENT '父级ID (0表示顶级)',
+    `name`           VARCHAR(100) NOT NULL COMMENT '地址名称',
+    `level`          TINYINT      NOT NULL COMMENT '层级: 1=省, 2=市, 3=区县, 4=镇/乡, 5=村',
+    `merger_name`    VARCHAR(500)          DEFAULT NULL COMMENT '全称路径',
+    `memo`           VARCHAR(255)          DEFAULT NULL COMMENT '备注',
+    `status`         INT          NOT NULL DEFAULT 1 COMMENT '状态: 1=启用, 0=禁用',
+    `create_instant` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `modify_instant` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    `version`        INT          NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+    PRIMARY KEY (`id`),
+    KEY `idx_parent_id` (`parent_id`),
+    KEY `idx_level` (`level`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='行政区划地址库';
+
+-- ❌ 禁止：不对齐的格式
+CREATE TABLE `sys_address` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `parent_id` BIGINT NOT NULL DEFAULT 0 COMMENT '父级ID',
+    `name` VARCHAR(100) NOT NULL COMMENT '地址名称',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+**格式化规则**:
+1. ✅ **字段名对齐**: 所有字段名左对齐
+2. ✅ **数据类型对齐**: 数据类型在同一列
+3. ✅ **约束对齐**: NOT NULL、DEFAULT 等约束对齐
+4. ✅ **COMMENT 对齐**: 所有注释在同一列
+5. ✅ **必须添加中文注释**: 所有字段、表必须有 COMMENT
+6. ✅ **索引单独一行**: PRIMARY KEY 和 KEY 独立成行
+7. ✅ **ENGINE 配置**: 统一使用 InnoDB、utf8mb4、utf8mb4_unicode_ci
+
+#### 标准字段（必须包含）
+
+所有业务表必须包含以下基础字段：
+
+```sql
+-- 审计字段（必须）
+`create_instant` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+`modify_instant` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+`version`        INT      NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+
+-- 逻辑删除（可选）
+`status`         INT      NOT NULL DEFAULT 1 COMMENT '状态: 1=有效, 0=删除',
+```
+
+#### ALTER 语句规范
+
+```sql
+-- ✅ 正确：添加列
+ALTER TABLE `ledger`
+    ADD COLUMN `payment_method` TINYINT NOT NULL DEFAULT 1 COMMENT '支付方式: 1=现金, 2=微信, 3=支付宝' AFTER `ledger_status`;
+
+-- ✅ 正确：添加索引
+ALTER TABLE `ledger`
+    ADD KEY `idx_customer_id_status` (`customer_id`, `ledger_status`);
+
+-- ✅ 正确：修改列
+ALTER TABLE `ledger`
+    MODIFY COLUMN `memo` VARCHAR(500) DEFAULT NULL COMMENT '备注（修改长度）';
+```
+
+#### 数据初始化规范
+
+```sql
+-- ✅ 正确：插入初始数据
+INSERT INTO `product_category` (`id`, `name`, `parent_id`, `level`, `status`)
+VALUES (1, '食品', 0, 1, 1),
+       (2, '日用品', 0, 1, 1),
+       (3, '水果', 1, 2, 1),
+       (4, '蔬菜', 1, 2, 1);
+```
+
+**约束规则**:
+- ✅ **必须使用列对齐格式**
+- ✅ **所有字段必须有中文 COMMENT**
+- ✅ **表必须有 COMMENT**
+- ✅ **必须包含审计字段**: create_instant, modify_instant, version
+- ✅ **使用反引号**: 表名、字段名用反引号包裹
+- ✅ **字符集**: utf8mb4 + utf8mb4_unicode_ci
+- ✅ **引擎**: InnoDB
+- ❌ **禁止删除字段**: 使用 status 标记删除
+- ❌ **禁止直接修改表结构**: 必须通过 Flyway 迁移文件
+
+#### 文件组织
+
+```
+src/main/resources/db/migration/
+├── V10.0.0.202511201000__init_database_schema.sql
+├── V10.0.0.202511201100__create_sys_user_table.sql
+├── V10.0.0.202511201200__create_customer_table.sql
+├── V10.0.0.202511201300__create_ledger_table.sql
+└── V10.0.0.202511261430__create_sys_address_table.sql
+```
+
+---
+
 ## 📝 命名规范
 
 ### 类命名
@@ -832,6 +961,17 @@ public Result<LedgerDTO> create(@Valid @RequestBody CreateLedgerDTO dto) {
 - [ ] ✅ **创建 MyBatis TypeHandler（继承 BaseEnumTypeHandler）**
 - [ ] ✅ 所有枚举值有JavaDoc注释
 
+### Flyway 迁移文件
+- [ ] ✅ **文件命名：V10.0.0.{yyyymmddhhmm}__{描述}.sql**
+- [ ] ✅ **建表语句使用列对齐格式**
+- [ ] ✅ **所有字段必须有中文 COMMENT**
+- [ ] ✅ **表必须有 COMMENT**
+- [ ] ✅ **包含审计字段：create_instant, modify_instant, version**
+- [ ] ✅ **使用反引号包裹表名和字段名**
+- [ ] ✅ **字符集：utf8mb4 + utf8mb4_unicode_ci**
+- [ ] ✅ **引擎：InnoDB**
+- [ ] ❌ **禁止删除字段（使用 status 标记）**
+
 ---
 
 ## ❌ 禁止事项
@@ -986,6 +1126,64 @@ if (Objects.equals(status, LedgerStatus.IN_PROGRESS)) {  // ✅ 使用Objects.eq
 if (Objects.equals(name, "张三")) {  // ✅ 安全的字符串比较
     // ...
 }
+```
+
+### Flyway 数据库迁移
+```sql
+-- ❌ 文件命名错误
+V1.0__create_table.sql  -- ❌ 版本号格式错误
+V10.0.0.20251126__create_table.sql  -- ❌ 缺少时分
+create_ledger_table.sql  -- ❌ 没有版本号
+V10.0.0.202511261430__创建账本表.sql  -- ❌ 使用中文描述
+
+-- ✅ 正确命名
+V10.0.0.202511261430__create_ledger_table.sql
+
+-- ❌ 不对齐的建表语句
+CREATE TABLE `ledger` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `customer_id` BIGINT NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB;  -- ❌ 缺少注释、不对齐、缺少字符集
+
+-- ✅ 正确做法：使用纵向对齐的格式化方式
+CREATE TABLE `sys_address`
+(
+    `id`             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `parent_id`      BIGINT       NOT NULL DEFAULT 0 COMMENT '父级ID (0表示顶级)',
+    `name`           VARCHAR(100) NOT NULL COMMENT '地址名称',
+    `level`          TINYINT      NOT NULL COMMENT '层级: 1=省, 2=市, 3=区县, 4=镇/乡, 5=村',
+    `merger_name`    VARCHAR(500)          DEFAULT NULL COMMENT '全称路径 (如: 广东省-深圳市-南山区-西丽街道-留仙村)',
+    `memo`           VARCHAR(255)          DEFAULT NULL COMMENT '备注',
+    `status`         INT          NOT NULL DEFAULT 1 COMMENT '状态: 1=启用, 0=禁用',
+    `create_instant` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `modify_instant` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    `version`        INT          NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+    PRIMARY KEY (`id`),
+    KEY `idx_parent_id` (`parent_id`),
+    KEY `idx_level` (`level`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci COMMENT ='行政区划地址库';
+
+-- ❌ 缺少必要字段
+CREATE TABLE `ledger` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name` VARCHAR(100) NOT NULL COMMENT '名称',
+    PRIMARY KEY (`id`)
+);  -- ❌ 缺少 create_instant, modify_instant, version
+
+-- ❌ 直接删除字段
+ALTER TABLE `ledger` DROP COLUMN `old_field`;  -- ❌ 禁止删除
+
+-- ✅ 正确做法：使用 status 标记
+UPDATE `ledger` SET `status` = 0 WHERE condition;
+
+-- ❌ 状态字段使用数字常量
+`status` TINYINT NOT NULL DEFAULT 1 COMMENT '1启用2禁用'  -- ❌ 应该详细说明
+
+-- ✅ 正确：详细说明状态值含义
+`status` INT NOT NULL DEFAULT 1 COMMENT '状态: 1=有效, 0=删除'
 ```
 
 ---
