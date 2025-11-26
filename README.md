@@ -152,8 +152,7 @@ mvn spring-boot:run
 V{version}__{description}.sql
 
 示例:
-V1.0.0__init_schema.sql
-V1.0.1__add_user_avatar.sql
+V10.0.0.202511261612__init_sys_basic_table.sql
 ```
 
 ## License
