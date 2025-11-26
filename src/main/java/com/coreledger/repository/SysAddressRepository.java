@@ -1,6 +1,7 @@
 package com.coreledger.repository;
 
 import com.coreledger.entity.SysAddress;
+import com.coreledger.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -23,7 +24,7 @@ public interface SysAddressRepository extends JpaRepository<SysAddress, Long> {
      * @param status 状态 (1=有效, 0=删除)
      * @return 地址
      */
-    Optional<SysAddress> findByIdAndStatus(Long id, Integer status);
+    Optional<SysAddress> findByIdAndStatus(Long id, Status status);
 
     /**
      * 根据父级ID查询子级地址
@@ -32,7 +33,7 @@ public interface SysAddressRepository extends JpaRepository<SysAddress, Long> {
      * @param status 状态 (1=有效)
      * @return 地址列表
      */
-    List<SysAddress> findByParentIdAndStatus(Long parentId, Integer status);
+    List<SysAddress> findByParentIdAndStatus(Long parentId, Status status);
 
     /**
      * 根据层级查询地址
@@ -41,5 +42,5 @@ public interface SysAddressRepository extends JpaRepository<SysAddress, Long> {
      * @param status 状态 (1=有效)
      * @return 地址列表
      */
-    List<SysAddress> findByLevelAndStatus(Integer level, Integer status);
+    List<SysAddress> findByLevelAndStatus(Integer level, Status status);
 }

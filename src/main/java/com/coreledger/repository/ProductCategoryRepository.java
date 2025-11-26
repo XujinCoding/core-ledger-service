@@ -1,6 +1,7 @@
 package com.coreledger.repository;
 
 import com.coreledger.entity.ProductCategory;
+import com.coreledger.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -23,7 +24,7 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
      * @param status 状态 (1=有效, 0=删除)
      * @return 分类
      */
-    Optional<ProductCategory> findByIdAndStatus(Long id, Integer status);
+    Optional<ProductCategory> findByIdAndStatus(Long id, Status status);
 
     /**
      * 根据父级ID查询子分类
@@ -32,7 +33,7 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
      * @param status 状态 (1=有效)
      * @return 子分类列表
      */
-    List<ProductCategory> findByParentIdAndStatus(Long parentId, Integer status);
+    List<ProductCategory> findByParentIdAndStatus(Long parentId, Status status);
 
     /**
      * 统计子分类数量
@@ -41,7 +42,7 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
      * @param status 状态 (1=有效)
      * @return 子分类数量
      */
-    long countByParentIdAndStatus(Long parentId, Integer status);
+    long countByParentIdAndStatus(Long parentId, Status status);
 
     /**
      * 查询所有有效分类
@@ -49,5 +50,5 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
      * @param status 状态 (1=有效)
      * @return 分类列表
      */
-    List<ProductCategory> findByStatus(Integer status);
+    List<ProductCategory> findByStatus(Status status);
 }

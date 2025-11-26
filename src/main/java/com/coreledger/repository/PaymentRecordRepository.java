@@ -1,6 +1,7 @@
 package com.coreledger.repository;
 
 import com.coreledger.entity.PaymentRecord;
+import com.coreledger.enums.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,7 +26,7 @@ public interface PaymentRecordRepository extends JpaRepository<PaymentRecord, Lo
      * @param status 状态 (1=有效, 0=删除)
      * @return 支付记录
      */
-    Optional<PaymentRecord> findByIdAndStatus(Long id, Integer status);
+    Optional<PaymentRecord> findByIdAndStatus(Long id, Status status);
 
     /**
      * 根据账本ID查询所有有效支付记录
@@ -34,7 +35,7 @@ public interface PaymentRecordRepository extends JpaRepository<PaymentRecord, Lo
      * @param status 状态 (1=有效)
      * @return 支付记录列表
      */
-    List<PaymentRecord> findByLedgerIdAndStatus(Long ledgerId, Integer status);
+    List<PaymentRecord> findByLedgerIdAndStatus(Long ledgerId, Status status);
 
     /**
      * 查询支付流水（分页）
@@ -43,7 +44,7 @@ public interface PaymentRecordRepository extends JpaRepository<PaymentRecord, Lo
      * @param pageable 分页参数
      * @return 支付记录分页列表
      */
-    Page<PaymentRecord> findByStatus(Integer status, Pageable pageable);
+    Page<PaymentRecord> findByStatus(Status status, Pageable pageable);
 
     /**
      * 根据账本ID查询支付流水（分页）
@@ -53,5 +54,14 @@ public interface PaymentRecordRepository extends JpaRepository<PaymentRecord, Lo
      * @param pageable 分页参数
      * @return 支付记录分页列表
      */
-    Page<PaymentRecord> findByLedgerIdAndStatus(Long ledgerId, Integer status, Pageable pageable);
+    Page<PaymentRecord> findByLedgerIdAndStatus(Long ledgerId, Status status, Pageable pageable);
+
+    /**
+     * 根据账本ID查询所有有效支付记录（按创建时间倒序）
+     *
+     * @param ledgerId 账本ID
+     * @param status 状态 (1=有效)
+     * @return 支付记录列表
+     */
+    List<PaymentRecord> findByLedgerIdAndStatusOrderByCreateInstantDesc(Long ledgerId, Status status);
 }

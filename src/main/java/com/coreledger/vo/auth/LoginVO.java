@@ -29,13 +29,19 @@ public class LoginVO {
     private UserInfoVO userInfo;
 
     /**
-     * 是否需要绑定手机号
+     * 是否需要补充信息
      */
-    @Schema(description = "是否需要绑定手机号", example = "false")
-    private Boolean needBindPhone;
+    @Schema(description = "是否需要补充信息", example = "false")
+    private Boolean needSupplement;
 
     /**
-     * 临时OpenID（需要绑定手机号时返回）
+     * 是否为新用户（需要注册）
+     */
+    @Schema(description = "是否为新用户", example = "false")
+    private Boolean isNewUser;
+
+    /**
+     * 临时OpenID（需要补充信息或注册时返回）
      */
     @Schema(description = "临时OpenID", example = "oUpF8uMuAJO_M2pxb1Q9zNjWeS6o")
     private String tempOpenid;
@@ -54,17 +60,30 @@ public class LoginVO {
         LoginVO vo = new LoginVO();
         vo.setToken(token);
         vo.setUserInfo(userInfo);
-        vo.setNeedBindPhone(false);
+        vo.setNeedSupplement(false);
+        vo.setIsNewUser(false);
         vo.setExpireTime(expireTime);
         return vo;
     }
 
     /**
-     * 创建需要绑定手机号的响应
+     * 创建需要补充信息的响应（已存在用户）
      */
-    public static LoginVO needBindPhone(String tempOpenid) {
+    public static LoginVO needSupplement(String tempOpenid) {
         LoginVO vo = new LoginVO();
-        vo.setNeedBindPhone(true);
+        vo.setNeedSupplement(true);
+        vo.setIsNewUser(false);
+        vo.setTempOpenid(tempOpenid);
+        return vo;
+    }
+
+    /**
+     * 创建需要注册的响应（新用户）
+     */
+    public static LoginVO needRegister(String tempOpenid) {
+        LoginVO vo = new LoginVO();
+        vo.setNeedSupplement(true);
+        vo.setIsNewUser(true);
         vo.setTempOpenid(tempOpenid);
         return vo;
     }

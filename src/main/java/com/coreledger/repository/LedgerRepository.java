@@ -2,9 +2,11 @@ package com.coreledger.repository;
 
 import com.coreledger.entity.Ledger;
 import com.coreledger.enums.LedgerStatus;
+import com.coreledger.enums.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,7 +19,7 @@ import java.util.Optional;
  * @since 1.0.0
  */
 @Repository
-public interface LedgerRepository extends JpaRepository<Ledger, Long> {
+public interface LedgerRepository extends JpaRepository<Ledger, Long>, JpaSpecificationExecutor<Ledger> {
 
     /**
      * 根据ID和状态查询账本
@@ -26,7 +28,7 @@ public interface LedgerRepository extends JpaRepository<Ledger, Long> {
      * @param status 状态 (1=有效, 0=删除)
      * @return 账本
      */
-    Optional<Ledger> findByIdAndStatus(Long id, Integer status);
+    Optional<Ledger> findByIdAndStatus(Long id, Status status);
 
     /**
      * 查询活跃账本（主页面）
@@ -37,7 +39,7 @@ public interface LedgerRepository extends JpaRepository<Ledger, Long> {
      * @param pageable 分页参数
      * @return 账本分页列表
      */
-    Page<Ledger> findByLedgerStatusInAndStatus(List<LedgerStatus> statuses, Integer status, Pageable pageable);
+    Page<Ledger> findByLedgerStatusInAndStatus(List<LedgerStatus> statuses, Status status, Pageable pageable);
 
     /**
      * 查询客户的所有账本
@@ -47,7 +49,7 @@ public interface LedgerRepository extends JpaRepository<Ledger, Long> {
      * @param pageable 分页参数
      * @return 账本分页列表
      */
-    Page<Ledger> findByCustomerIdAndStatus(Long customerId, Integer status, Pageable pageable);
+    Page<Ledger> findByCustomerIdAndStatus(Long customerId, Status status, Pageable pageable);
 
     /**
      * 查询指定状态的账本
@@ -57,5 +59,15 @@ public interface LedgerRepository extends JpaRepository<Ledger, Long> {
      * @param pageable 分页参数
      * @return 账本分页列表
      */
-    Page<Ledger> findByLedgerStatusAndStatus(LedgerStatus ledgerStatus, Integer status, Pageable pageable);
+    Page<Ledger> findByLedgerStatusAndStatus(LedgerStatus ledgerStatus, Status status, Pageable pageable);
+
+    /**
+     * 统计客户的指定状态账本数量
+     *
+     * @param customerId 客户ID
+     * @param statuses 账本状态列表
+     * @param status 数据状态 (1=有效)
+     * @return 账本数量
+     */
+    long countByCustomerIdAndLedgerStatusInAndStatus(Long customerId, List<LedgerStatus> statuses, Status status);
 }

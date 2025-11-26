@@ -1,11 +1,14 @@
 package com.coreledger.entity;
 
+import com.coreledger.config.converter.JsonMapConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 账本明细实体
@@ -26,7 +29,11 @@ public class LedgerItem extends BaseEntity {
     @Column(name = "ledger_id", nullable = false)
     private Long ledgerId;
 
-    /** 商品ID */
+    /** SKU ID */
+    @Column(name = "sku_id")
+    private Long skuId;
+
+    /** 商品ID (SPU，用于向后兼容) */
     @Column(name = "product_id", nullable = false)
     private Long productId;
 
@@ -36,6 +43,21 @@ public class LedgerItem extends BaseEntity {
      */
     @Column(name = "product_name", nullable = false, length = 100)
     private String productName;
+
+    /**
+     * SKU名称（冗余存储）
+     * <p>如：红富士苹果-5斤-一级</p>
+     */
+    @Column(name = "sku_name", length = 150)
+    private String skuName;
+
+    /**
+     * 属性值映射（冗余存储）
+     * <p>JSON 格式，如：{"重量":"5斤", "等级":"一级"}</p>
+     */
+    @Column(name = "attr_value_map", length = 500)
+    @Convert(converter = JsonMapConverter.class)
+    private Map<String, String> attrValueMap = new HashMap<>();
 
     /**
      * 实际售价

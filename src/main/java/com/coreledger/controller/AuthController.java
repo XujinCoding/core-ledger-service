@@ -1,8 +1,8 @@
 package com.coreledger.controller;
 
 import com.coreledger.common.Result;
-import com.coreledger.dto.auth.BindPhoneDTO;
 import com.coreledger.dto.auth.PasswordLoginDTO;
+import com.coreledger.dto.auth.SupplementUserInfoDTO;
 import com.coreledger.dto.auth.WechatLoginDTO;
 import com.coreledger.service.AuthService;
 import com.coreledger.vo.auth.LoginVO;
@@ -30,7 +30,7 @@ public class AuthController {
     /**
      * 微信小程序登录
      */
-    @Operation(summary = "微信小程序登录", description = "通过微信code登录，首次登录需要绑定手机号")
+    @Operation(summary = "微信小程序登录", description = "通过微信code登录，根据返回的needSupplement和isNewUser判断是否需要补充信息或注册")
     @PostMapping("/wechat-login")
     public Result<LoginVO> wechatLogin(@Valid @RequestBody WechatLoginDTO dto) {
         LoginVO loginVO = authService.wechatLogin(dto);
@@ -38,12 +38,22 @@ public class AuthController {
     }
 
     /**
-     * 绑定手机号
+     * 补充用户信息（已存在用户）
      */
-    @Operation(summary = "绑定手机号", description = "微信登录后绑定手机号完成注册")
-    @PostMapping("/bind-phone")
-    public Result<LoginVO> bindPhone(@Valid @RequestBody BindPhoneDTO dto) {
-        LoginVO loginVO = authService.bindPhone(dto);
+    @Operation(summary = "补充用户信息", description = "已存在用户补充手机号等信息")
+    @PostMapping("/supplement-info")
+    public Result<LoginVO> supplementUserInfo(@Valid @RequestBody SupplementUserInfoDTO dto) {
+        LoginVO loginVO = authService.supplementUserInfo(dto);
+        return Result.success(loginVO);
+    }
+
+    /**
+     * 注册新用户
+     */
+    @Operation(summary = "注册新用户", description = "新用户注册并补充信息")
+    @PostMapping("/register")
+    public Result<LoginVO> registerUser(@Valid @RequestBody SupplementUserInfoDTO dto) {
+        LoginVO loginVO = authService.registerUser(dto);
         return Result.success(loginVO);
     }
 

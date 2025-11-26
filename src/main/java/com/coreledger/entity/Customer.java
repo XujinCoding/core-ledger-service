@@ -1,7 +1,9 @@
 package com.coreledger.entity;
 
 import com.coreledger.config.converter.GenderConverter;
+import com.coreledger.config.converter.CustomerTypeConverter;
 import com.coreledger.enums.Gender;
+import com.coreledger.enums.CustomerType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -63,4 +65,15 @@ public class Customer extends BaseEntity {
     /** 详细地址 */
     @Column(name = "address_detail", length = 255)
     private String addressDetail;
+
+    /**
+     * 客户类型
+     * <ul>
+     *   <li>0 = POTENTIAL (潜在客户)</li>
+     *   <li>1 = ACTIVE (活跃客户)</li>
+     * </ul>
+     */
+    @Column(name = "customer_type", nullable = false)
+    @Convert(converter = CustomerTypeConverter.class)
+    private CustomerType customerType = CustomerType.ACTIVE;
 }

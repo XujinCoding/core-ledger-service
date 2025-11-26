@@ -1,9 +1,12 @@
 package com.coreledger.repository;
 
 import com.coreledger.entity.Customer;
+import com.coreledger.enums.CustomerType;
+import com.coreledger.enums.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -15,7 +18,7 @@ import java.util.Optional;
  * @since 1.0.0
  */
 @Repository
-public interface CustomerRepository extends JpaRepository<Customer, Long> {
+public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSpecificationExecutor<Customer> {
 
     /**
      * 根据ID和状态查询客户
@@ -24,7 +27,7 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      * @param status 状态 (1=有效, 0=删除)
      * @return 客户
      */
-    Optional<Customer> findByIdAndStatus(Long id, Integer status);
+    Optional<Customer> findByIdAndStatus(Long id, Status status);
 
     /**
      * 根据手机号查询客户
@@ -41,7 +44,7 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      * @param status 状态 (1=有效)
      * @return 客户
      */
-    Optional<Customer> findByPhoneAndStatus(String phone, Integer status);
+    Optional<Customer> findByPhoneAndStatus(String phone, Status status);
 
     /**
      * 根据姓名模糊查询客户（分页）
@@ -51,7 +54,7 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      * @param pageable 分页参数
      * @return 客户分页列表
      */
-    Page<Customer> findByNameContainingAndStatus(String name, Integer status, Pageable pageable);
+    Page<Customer> findByNameContainingAndStatus(String name, Status status, Pageable pageable);
 
     /**
      * 根据地址ID查询客户（分页）
@@ -61,7 +64,7 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      * @param pageable 分页参数
      * @return 客户分页列表
      */
-    Page<Customer> findByAddressIdAndStatus(Long addressId, Integer status, Pageable pageable);
+    Page<Customer> findByAddressIdAndStatus(Long addressId, Status status, Pageable pageable);
 
     /**
      * 查询所有有效客户（分页）
@@ -70,5 +73,15 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
      * @param pageable 分页参数
      * @return 客户分页列表
      */
-    Page<Customer> findByStatus(Integer status, Pageable pageable);
+    Page<Customer> findByStatus(Status status, Pageable pageable);
+
+    /**
+     * 根据客户类型和状态查询客户（分页）
+     *
+     * @param customerType 客户类型
+     * @param status 状态 (1=有效)
+     * @param pageable 分页参数
+     * @return 客户分页列表
+     */
+    Page<Customer> findByCustomerTypeAndStatus(CustomerType customerType, Status status, Pageable pageable);
 }

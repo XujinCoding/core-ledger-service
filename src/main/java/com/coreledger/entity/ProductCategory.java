@@ -32,9 +32,20 @@ public class ProductCategory extends BaseEntity {
     private String name;
 
     /**
+     * 层级
+     * <p>1-5级，最多支持5级分类</p>
+     */
+    @Column(name = "level", nullable = false)
+    private Integer level = 1;
+
+    /**
      * 排序序号
      * <p>数字越小越靠前</p>
      */
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
+
+    /** 分类图标URL */
+    @Column(name = "icon_url", length = 500)
+    private String iconUrl;
 }

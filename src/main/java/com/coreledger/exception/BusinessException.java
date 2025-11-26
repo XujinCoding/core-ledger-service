@@ -62,6 +62,17 @@ public class BusinessException extends RuntimeException {
     }
 
     /**
+     * 构造函数（仅使用自定义消息，默认使用 BUSINESS_ERROR 错误码）
+     *
+     * @param message 错误消息
+     */
+    public BusinessException(String message) {
+        super(message);
+        this.code = BusinessCode.BUSINESS_ERROR.getCode();
+        this.message = message;
+    }
+
+    /**
      * 构造函数（使用错误码枚举和异常原因）
      *
      * @param businessCode 错误码枚举
