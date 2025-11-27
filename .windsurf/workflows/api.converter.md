@@ -63,7 +63,7 @@ $ARGUMENTS
 ### 阶段 2：API 转换执行
 
 1. **生成 API 文件**：
-   - 创建符合规范的 API JS 文件
+   - 创建符合规范的 API TS 文件
    - 使用 ES6 模块语法
    - 导入必要的工具（`@/utils/request`）
 

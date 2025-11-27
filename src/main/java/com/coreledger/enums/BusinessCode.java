@@ -91,6 +91,33 @@ public enum BusinessCode {
     /** 商品分类下存在商品 */
     PRODUCT_CATEGORY_HAS_PRODUCTS(3005, "该分类下存在商品，无法删除"),
 
+    /** 商品属性不存在 */
+    PRODUCT_ATTR_NOT_FOUND(3006, "商品属性不存在"),
+
+    /** 商品属性值不存在 */
+    PRODUCT_ATTR_VALUE_NOT_FOUND(3007, "商品属性值不存在"),
+
+    /** 商品属性值被SKU使用 */
+    PRODUCT_ATTR_VALUE_IN_USE(3008, "该属性值正在被SKU使用，无法删除"),
+
+    /** 商品属性被SKU使用 */
+    PRODUCT_ATTR_IN_USE(3009, "该属性正在被SKU使用，无法删除"),
+
+    /** SKU不存在 */
+    PRODUCT_SKU_NOT_FOUND(3010, "SKU不存在"),
+
+    /** SKU未定价 */
+    PRODUCT_SKU_NOT_PRICED(3011, "SKU未定价，无法使用"),
+
+    /** SKU价格无效 */
+    PRODUCT_SKU_PRICE_INVALID(3012, "SKU价格必须大于0"),
+
+    /** 商品无属性 */
+    PRODUCT_NO_ATTRS(3013, "商品没有属性，无法生成SKU"),
+
+    /** 商品SKU数量过多 */
+    PRODUCT_SKU_TOO_MANY(3014, "商品SKU数量过多，请减少属性或属性值"),
+
     // ==================== 支付模块 (4000-4999) ====================
     /** 支付记录不存在 */
     PAYMENT_RECORD_NOT_FOUND(4001, "支付记录不存在"),
