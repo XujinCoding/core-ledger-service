@@ -22,9 +22,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -258,19 +256,50 @@ public class ProductCategoryService {
      * @param parentId 父分类ID
      * @return 分类树
      */
-    private List<CategoryTreeVO> buildTree(List<ProductCategory> allCategories, Long parentId) {
-        List<CategoryTreeVO> tree = new ArrayList<>();
-        
-        for (ProductCategory category : allCategories) {
-            if (Objects.equals(category.getParentId(), parentId)) {
-                CategoryTreeVO node = categoryConverter.toTreeVO(category);
-                // 递归查找子节点
-                node.setChildren(buildTree(allCategories, category.getId()));
-                tree.add(node);
-            }
+    private List<CategoryTreeVO> buildTree(List<ProductCategory> allCategories, Long rootParentId) {
+        if (allCategories == null || allCategories.isEmpty()) {
+            return Collections.emptyList();
         }
-        
-        return tree;
+
+        // 构建所有节点的Map
+        Map<Long, CategoryTreeVO> nodeMap = new HashMap<>();
+        Map<Long, List<CategoryTreeVO>> childrenMap = new HashMap<>();
+
+        // 第一遍遍历：创建所有节点并分组子节点
+        for (ProductCategory category : allCategories) {
+            CategoryTreeVO node = categoryConverter.toTreeVO(category);
+            nodeMap.put(category.getId(), node);
+
+            Long parentId = category.getParentId();
+            if (parentId == null) {
+                parentId = rootParentId; // 使用传入的根parentId
+            }
+            childrenMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(node);
+        }
+
+        // 第二遍遍历：构建树结构
+        List<CategoryTreeVO> rootNodes = childrenMap.get(rootParentId);
+        if (rootNodes == null) {
+            return Collections.emptyList();
+        }
+
+        for (CategoryTreeVO node : rootNodes) {
+            buildChildren(node, childrenMap);
+        }
+
+        return rootNodes;
+    }
+
+    private void buildChildren(CategoryTreeVO parent, Map<Long, List<CategoryTreeVO>> childrenMap) {
+        List<CategoryTreeVO> children = childrenMap.get(parent.getId());
+        if (children != null) {
+            parent.setChildren(children);
+            for (CategoryTreeVO child : children) {
+                buildChildren(child, childrenMap);
+            }
+        } else {
+            parent.setChildren(Collections.emptyList());
+        }
     }
 
     /**

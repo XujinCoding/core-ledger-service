@@ -68,6 +68,13 @@ public class ProductUpdateDTO {
     @Schema(description = "存放位置", example = "A区3排5列")
     private String location;
 
+
+    /**
+     * 商品分类标识
+     */
+    @Schema(description = "商品分类标识", example = "1")
+    private Long categoryId;
+
     /**
      * 备注
      */

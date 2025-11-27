@@ -156,7 +156,7 @@ public class ProductService {
             .build();
 
         return productRepository.findAll(spec, pageable)
-            .map(this::toSimpleVO);
+            .map(this::toDetailVO);
     }
 
     /**
