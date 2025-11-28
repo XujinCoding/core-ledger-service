@@ -163,6 +163,9 @@ public enum BusinessCode {
     /** 必须选择村级地址 */
     ADDRESS_MUST_BE_VILLAGE(6003, "客户地址必须选择到村级"),
 
+    /** 地址层级超限 */
+    ADDRESS_LEVEL_EXCEEDED(6004, "地址层级不能超过5级（村级）"),
+
     // ==================== 系统错误 (9000-9999) ====================
     /** 乐观锁冲突 */
     OPTIMISTIC_LOCK_CONFLICT(9001, "数据已被其他用户修改，请刷新后重试"),

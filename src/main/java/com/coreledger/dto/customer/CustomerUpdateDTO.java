@@ -3,6 +3,7 @@ package com.coreledger.dto.customer;
 import com.coreledger.enums.CustomerType;
 import com.coreledger.enums.Gender;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -55,4 +56,13 @@ public class CustomerUpdateDTO {
      */
     @Schema(description = "客户类型: 1=活跃, 2=潜在, 3=流失", example = "1")
     private CustomerType customerType;
+
+
+    /** 关联地址ID */
+    @Schema(name = "关联地址ID")
+    private Long addressId;
+
+    /** 详细地址 */
+    @Schema(name = "详细地址", example = "村")
+    private String addressDetail;
 }

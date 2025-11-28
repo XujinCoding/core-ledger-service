@@ -12,6 +12,7 @@ import com.coreledger.entity.SysAddress;
 import com.coreledger.enums.BusinessCode;
 import com.coreledger.enums.CustomerType;
 import com.coreledger.enums.OperationType;
+import com.coreledger.enums.Status;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.repository.CustomerHistoryRepository;
@@ -86,7 +87,7 @@ public class CustomerService {
         }
 
         // 2. 校验地址是否存在且为村级地址
-        SysAddress address = addressRepository.findByIdAndStatus(dto.getAddressId(), 1)
+        SysAddress address = addressRepository.findByIdAndStatus(dto.getAddressId(), Status.ACTIVE)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.ADDRESS_NOT_FOUND));
 
         if (!address.isVillageLevel()) {
@@ -160,7 +161,7 @@ public class CustomerService {
                 .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
 
         // 2. 校验地址是否存在且为村级地址
-        SysAddress address = addressRepository.findByIdAndStatus(dto.getAddressId(), 1)
+        SysAddress address = addressRepository.findByIdAndStatus(dto.getAddressId(), Status.ACTIVE)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.ADDRESS_NOT_FOUND));
 
         if (!address.isVillageLevel()) {

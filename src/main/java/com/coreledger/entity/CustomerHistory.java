@@ -10,6 +10,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -26,6 +29,7 @@ import java.time.LocalDateTime;
 @ToString
 @Entity
 @Table(name = "customer_history")
+@EntityListeners(AuditingEntityListener.class)
 public class CustomerHistory {
 
     /** 历史记录ID（使用单独的主键） */
@@ -82,10 +86,12 @@ public class CustomerHistory {
 
     /** 创建时间 */
     @Column(name = "create_instant", nullable = false, updatable = false)
+    @CreatedDate
     private LocalDateTime createInstant;
 
     /** 修改时间 */
     @Column(name = "modify_instant", nullable = false)
+    @LastModifiedDate
     private LocalDateTime modifyInstant;
 
     /** 乐观锁版本号 */
@@ -130,7 +136,7 @@ public class CustomerHistory {
         history.setCustomerType(customer.getCustomerType());
         history.setStatus(1); // 默认状态为启用
         history.setOperationType(operationType);
-        history.setOperationTime(LocalDateTime.now());
+        history.setOperationTime(customer.getModifyInstant());
         // TODO: 从上下文获取操作人信息
         // history.setOperatorId(currentUserId);
         // history.setOperatorName(currentUserName);
