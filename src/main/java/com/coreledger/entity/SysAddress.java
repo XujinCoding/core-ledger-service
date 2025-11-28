@@ -60,6 +60,6 @@ public class SysAddress extends BaseEntity {
      * @return true=村级, false=非村级
      */
     public boolean isVillageLevel() {
-        return this.level != null && this.level == 5;
+        return this.level != null && this.level >= 4;
     }
 }
