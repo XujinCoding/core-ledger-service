@@ -75,6 +75,18 @@ public enum BusinessCode {
     /** 账本明细不存在 */
     LEDGER_ITEM_NOT_FOUND(2007, "账本明细不存在"),
 
+    /** 账本明细不属于该账单 */
+    LEDGER_ITEM_NOT_BELONG(2008, "账单明细不属于该账单"),
+
+    /** 账本明细已删除 */
+    LEDGER_ITEM_DELETED(2009, "账单明细已删除，无法修改"),
+
+    /** 支付方式必填 */
+    LEDGER_PAYMENT_METHOD_REQUIRED(2010, "有支付金额时支付方式不能为空"),
+
+    /** 账本已有支付记录 */
+    LEDGER_HAS_PAYMENT(2011, "账本已有支付记录，无法关闭"),
+
     // ==================== 商品模块 (3000-3999) ====================
     /** 商品不存在 */
     PRODUCT_NOT_FOUND(3001, "商品不存在"),

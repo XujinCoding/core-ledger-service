@@ -8,9 +8,9 @@ spring:
     name: core-ledger-backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/core_ledger?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    url: jdbc:mysql://8.219.164.165:3306/core_ledger?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: core_ledger
+    password: core_ledger
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
@@ -58,9 +58,9 @@ spring:
   # Redis Configuration
   data:
     redis:
-      host: localhost
+      host: 8.219.164.165
       port: 6379
-      password: 
+      password: core_ledger
       database: 0
       timeout: 5000ms
       lettuce:

@@ -87,14 +87,16 @@ public class Customer extends BaseEntity {
 ### 3. 数据查询约束
 
 ```java
+import com.coreledger.enums.Status;
+
 // ✅ 单表条件查询 - 使用PredicateBuilder
 @Service
 public class CustomerService {
     public Page<Customer> search(String keyword, Pageable pageable) {
         Specification<Customer> spec = PredicateBuilder.<Customer>and()
-            .equal("status", 1)
+                .equal("status", Status.ACTIVE)
             .like(StrUtil::isNotBlank, "name", keyword)
-            .build();
+                .build();
         return customerRepository.findAll(spec, pageable);
     }
 }
@@ -118,6 +120,83 @@ public interface LedgerMapper {
 - ✅ **多表联查/复杂统计** → 使用 MyBatis Mapper
 - ✅ **写操作(CUD)** → 使用 JPA Repository
 - ❌ **禁止单表查询使用MyBatis**
+
+**PredicateBuilder 详细使用说明**:
+
+```java
+// ✅ 基本用法 - 相等条件
+Specification<Ledger> spec = PredicateBuilder.<Ledger>and()
+    .equal("customerId", customerId)           // 自动过滤 null
+    .equal("ledgerStatus", LedgerStatus.ACTIVE)
+    .build();
+
+// ✅ 模糊查询
+Specification<Customer> spec = PredicateBuilder.<Customer>and()
+    .like(StrUtil::isNotBlank, "name", keyword)        // 两端模糊 %keyword%
+    .smartLike(StrUtil::isNotBlank, "code", prefix)    // 前缀匹配 prefix%
+    .build();
+
+// ✅ IN 查询
+Specification<Ledger> spec = PredicateBuilder.<Ledger>and()
+    .in("customerId", customerIds)    // 自动过滤空集合
+    .build();
+
+// ✅ 时间范围查询
+ Specification<Ledger> spec = PredicateBuilder.<Ledger>and()
+                .betweenLocalDate(queryDTO.getCreatedAtStart() != null && queryDTO.getCreatedAtEnd() != null,
+                        "createInstant", queryDTO.getCreatedAtStart(), queryDTO.getCreatedAtEnd())
+                .build();
+
+// ✅ 完整的动态查询示例
+Specification<Ledger> spec = PredicateBuilder.<Ledger>and()
+        .equal("customerId", queryDTO.getCustomerId())
+        .equal("ledgerStatus", queryDTO.getLedgerStatus())
+        .betweenLocalDate(queryDTO.getCreatedAtStart() != null && queryDTO.getCreatedAtEnd() != null,
+                "createInstant", queryDTO.getCreatedAtStart(), queryDTO.getCreatedAtEnd())
+        .build();
+    
+    Page<Ledger> page = ledgerRepository.findAll(spec, pageable);
+    return page.map(ledgerConverter::toListVO);
+}
+
+// ✅ OR 条件组合
+Specification<Customer> spec = PredicateBuilder.<Customer>or()
+    .like(StrUtil::isNotBlank, "name", keyword)
+    .like(StrUtil::isNotBlank, "phone", keyword)
+    .build();
+
+// ✅ 自定义条件
+Specification<Ledger> spec = PredicateBuilder.<Ledger>and()
+    .equal("customerId", customerId)
+    .predicate(true, (root, query, cb) -> {
+        // 自定义复杂条件
+        return cb.greaterThan(root.get("totalAmount"), BigDecimal.ZERO);
+    })
+    .build();
+
+// ❌ 禁止：手动构建 Specification
+Specification<Ledger> spec = (root, query, cb) -> {
+    List<Predicate> predicates = new ArrayList<>();
+    if (customerId != null) {
+        predicates.add(cb.equal(root.get("customerId"), customerId));
+    }
+    // ... 繁琐且容易出错
+    return cb.and(predicates.toArray(new Predicate[0]));
+};
+```
+
+**PredicateBuilder 方法说明**:
+
+| 方法 | 说明 | 示例 |
+|------|------|------|
+| `equal(field, value)` | 相等条件，自动过滤 null | `.equal("status", Status.ACTIVE)` |
+| `notEqual(field, value)` | 不等条件 | `.notEqual("status", Status.DELETED)` |
+| `in(field, collection)` | IN 查询，自动过滤空集合 | `.in("id", ids)` |
+| `like(predicate, field, value)` | 模糊查询 %value% | `.like(StrUtil::isNotBlank, "name", keyword)` |
+| `smartLike(predicate, field, value)` | 前缀匹配 value% | `.smartLike(StrUtil::isNotBlank, "code", prefix)` |
+| `predicate(condition, spec)` | 自定义条件 | `.predicate(value != null, (r,q,cb) -> ...)` |
+| `and()` | AND 组合（默认） | `PredicateBuilder.<T>and()` |
+| `or()` | OR 组合 | `PredicateBuilder.<T>or()` |
 
 ---
 
@@ -409,6 +488,8 @@ mybatis:
 ### 7. Controller接口设计约束
 
 ```java
+import com.coreledger.enums.LedgerStatus;
+
 // ✅ 正确：参数不超过3个
 @GetMapping("/{id}")
 public Result<LedgerVO> getById(@PathVariable Long id) {
@@ -417,9 +498,9 @@ public Result<LedgerVO> getById(@PathVariable Long id) {
 
 @GetMapping("/search")
 public Result<Page<LedgerVO>> search(
-    @RequestParam String keyword,
-    @RequestParam(required = false) Integer status,
-    Pageable pageable
+        @RequestParam String keyword,
+        @RequestParam(required = false) LedgerStatus status,
+        Pageable pageable
 ) {
     // 最多3个参数
 }
@@ -433,11 +514,11 @@ public Result<Page<LedgerVO>> search(@RequestBody @Valid LedgerSearchVO searchVO
 // ❌ 禁止：参数超过3个
 @GetMapping("/search")
 public Result<Page<LedgerVO>> search(
-    @RequestParam String keyword,
-    @RequestParam Integer status,
-    @RequestParam Long customerId,
-    @RequestParam LocalDate startDate,  // ❌ 第4个参数，应该封装成VO
-    @RequestParam LocalDate endDate
+        @RequestParam String keyword,
+        @RequestParam LedgerStatus status,
+        @RequestParam Long customerId,
+        @RequestParam LocalDate startDate,  // ❌ 第4个参数，应该封装成VO
+        @RequestParam LocalDate endDate
 ) {
     // ...
 }
@@ -475,6 +556,98 @@ public Result<LedgerVO> getById(@PathVariable Long id) { }
 public Result<LedgerDTO> create(@RequestParam String name) { }
 ```
 
+**分页查询返回值约束**:
+```java
+// ✅ 正确：使用 @PageableDefault + Pageable 参数
+@GetMapping("/list")
+public Result<Page<LedgerVO>> list(
+    @PageableDefault(size = 20, sort = "createInstant", direction = Sort.Direction.DESC) Pageable pageable
+) {
+    Page<Ledger> ledgerPage = ledgerRepository.findAll(pageable);
+    Page<LedgerVO> voPage = ledgerPage.map(ledgerConverter::toVO);
+    return Result.success(voPage);
+}
+
+// Service层接收Pageable参数
+public Page<LedgerVO> queryLedgers(LedgerQueryDTO queryDTO, Pageable pageable) {
+    Page<Ledger> ledgerPage = ledgerRepository.findAll(spec, pageable);
+    return ledgerPage.map(ledgerConverter::toListVO);
+}
+
+// ❌ 禁止：在DTO中定义page/size字段
+public class LedgerQueryDTO {
+    private Integer page;  // ❌ 不要在DTO中定义分页字段
+    private Integer size;  // ❌ 应该使用Pageable参数
+}
+
+// ❌ 禁止：使用 Map<String, Object> 返回分页数据
+@GetMapping("/list")
+public Result<Map<String, Object>> list(Pageable pageable) {
+    Map<String, Object> result = new HashMap<>();
+    result.put("content", ledgerPage.getContent());  // ❌ 丢失类型安全
+    return Result.success(result);
+}
+
+// ❌ 禁止：使用 @RequestParam 接收分页参数
+@GetMapping("/list")
+public Result<Page<LedgerVO>> list(
+    @RequestParam(defaultValue = "0") Integer page,  // ❌ 应该使用Pageable
+    @RequestParam(defaultValue = "10") Integer size
+) {
+    Pageable pageable = PageRequest.of(page, size);  // ❌ 不要手动创建
+    return Result.success(ledgerService.list(pageable));
+}
+```
+
+**分页参数最佳实践**:
+```java
+// ✅ 推荐：使用 @PageableDefault 设置默认值
+@GetMapping
+public Result<Page<LedgerVO>> query(
+    LedgerQueryDTO queryDTO,
+    @PageableDefault(size = 20, sort = "createInstant", direction = Sort.Direction.DESC) Pageable pageable
+) {
+    return Result.success(ledgerService.query(queryDTO, pageable));
+}
+
+// 前端调用示例：
+// GET /api/ledgers?customerId=1&page=0&size=20&sort=createInstant,desc
+// GET /api/ledgers?customerId=1  // 使用默认分页参数
+
+// ✅ 多字段排序
+@PageableDefault(
+    size = 20,
+    sort = {"createInstant", "id"},  // 先按创建时间，再按ID
+    direction = Sort.Direction.DESC
+)
+
+// ✅ Service层直接使用Pageable
+public Page<LedgerVO> query(LedgerQueryDTO queryDTO, Pageable pageable) {
+    Specification<Ledger> spec = buildSpec(queryDTO);
+    Page<Ledger> page = ledgerRepository.findAll(spec, pageable);
+    return page.map(ledgerConverter::toVO);
+}
+```
+
+**时间字段命名约束**:
+```java
+// ✅ 正确：使用 BaseEntity 中的标准字段名
+Sort.by(Sort.Direction.DESC, "createInstant")  // 创建时间
+Sort.by(Sort.Direction.DESC, "modifyInstant")  // 修改时间
+
+Specification<Ledger> spec = (root, query, cb) -> {
+    if (startTime != null) {
+        predicates.add(cb.greaterThanOrEqualTo(root.get("createInstant"), startTime));
+    }
+    return cb.and(predicates.toArray(new Predicate[0]));
+};
+
+// ❌ 禁止：使用不存在的字段名
+Sort.by(Sort.Direction.DESC, "createdAt")   // ❌ 字段不存在
+Sort.by(Sort.Direction.DESC, "updatedAt")   // ❌ 字段不存在
+Sort.by(Sort.Direction.DESC, "createTime")  // ❌ 字段不存在
+```
+
 **约束规则**:
 - ✅ **接口参数不超过3个**
 - ✅ **超过3个参数必须封装成VO**
@@ -482,8 +655,13 @@ public Result<LedgerDTO> create(@RequestParam String name) { }
 - ✅ **新增使用 POST**
 - ✅ **修改使用 PUT**
 - ✅ **删除使用 DELETE**
+- ✅ **分页参数必须使用 @PageableDefault + Pageable**
+- ✅ **分页查询返回 Result<Page<T>>**
+- ❌ 禁止在DTO中定义page/size字段
+- ❌ 禁止使用@RequestParam接收分页参数
 - ❌ 禁止GET请求使用@RequestBody
 - ❌ 禁止路径参数过多（建议最多2个）
+- ❌ 禁止返回Map<String, Object>作为分页数据
 
 ---
 
@@ -681,7 +859,8 @@ CREATE TABLE `sys_address`
     KEY `idx_level` (`level`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='行政区划地址库';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='行政区划地址库'
+  AUTO_INCREMENT = 10000;  -- 自增主键从10000开始
 
 -- ❌ 禁止：不对齐的格式
 CREATE TABLE `sys_address` (
@@ -1075,7 +1254,7 @@ public class Ledger {
 @GetMapping("/search")
 public Result<List<LedgerVO>> search(
     @RequestParam String keyword,
-    @RequestParam Integer status,
+    @RequestParam LedgerStatus status,
     @RequestParam Long customerId,
     @RequestParam LocalDate startDate,  // ❌ 超过3个，应封装成VO
     @RequestParam LocalDate endDate

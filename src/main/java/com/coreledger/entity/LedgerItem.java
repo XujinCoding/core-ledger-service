@@ -47,4 +47,8 @@ public class LedgerItem extends BaseEntity {
     /** 数量 */
     @Column(name = "quantity", nullable = false)
     private Integer quantity = 1;
+
+    /** 小计金额（price × quantity）*/
+    @Column(name = "amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount;
 }
