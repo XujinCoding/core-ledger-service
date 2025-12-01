@@ -35,4 +35,4 @@ CREATE TABLE `customer_history`
     KEY `idx_operation_time` (`operation_time`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='客户历史表（快照模式）';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='客户历史表（快照模式）' AUTO_INCREMENT = 10000;

@@ -31,7 +31,7 @@ CREATE TABLE `customer`
     KEY `idx_customer_type` (`customer_type`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='客户信息表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='客户信息表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 2. ledger (账本主表)
@@ -55,7 +55,7 @@ CREATE TABLE `ledger`
     KEY `idx_create_instant` (`create_instant`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='账本主表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='账本主表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 3. ledger_item (账本明细表)
@@ -81,7 +81,7 @@ CREATE TABLE `ledger_item`
     KEY `idx_sku_id` (`sku_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='账本明细表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='账本明细表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 4. payment_record (支付流水表)
@@ -103,4 +103,4 @@ CREATE TABLE `payment_record`
     KEY `idx_create_instant` (`create_instant`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='支付流水表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='支付流水表' AUTO_INCREMENT = 10000;

@@ -25,7 +25,7 @@ CREATE TABLE `product_category`
     KEY `idx_parent_id` (`parent_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='商品分类表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='商品分类表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 2. product (商品信息表)
@@ -51,7 +51,7 @@ CREATE TABLE `product`
     KEY `idx_name` (`name`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='商品信息表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='商品信息表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 3. product_attr (商品属性表)
@@ -72,7 +72,7 @@ CREATE TABLE `product_attr`
     KEY `idx_attr_name` (`attr_name`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='商品属性表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='商品属性表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 4. product_attr_value (商品属性值表)
@@ -92,7 +92,7 @@ CREATE TABLE `product_attr_value`
     KEY `idx_product_attr_id` (`product_attr_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='商品属性值表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='商品属性值表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 5. product_sku (商品SKU表)
@@ -117,7 +117,7 @@ CREATE TABLE `product_sku`
     KEY `idx_price` (`price`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='商品SKU表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='商品SKU表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 6. product_sku_attr (商品SKU属性值表)
@@ -142,4 +142,4 @@ CREATE TABLE `product_sku_attr`
     KEY `idx_product_attr_value_id` (`product_attr_value_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci COMMENT ='商品SKU属性值表';
+  COLLATE = utf8mb4_unicode_ci COMMENT ='商品SKU属性值表' AUTO_INCREMENT = 10000;

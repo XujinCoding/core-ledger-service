@@ -26,7 +26,7 @@ CREATE TABLE `sys_user` (
     UNIQUE KEY `uk_phone` (`phone`),
     UNIQUE KEY `uk_username` (`username`),
     UNIQUE KEY `uk_wx_openid` (`wx_openid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统用户表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统用户表' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- 2. sys_address (地址库/行政区划表)
@@ -45,7 +45,7 @@ CREATE TABLE `sys_address` (
     PRIMARY KEY (`id`),
     KEY `idx_parent_id` (`parent_id`),
     KEY `idx_level` (`level`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='行政区划地址库';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='行政区划地址库' AUTO_INCREMENT = 10000;
 
 -- =====================================================
 -- Initialize Default Admin User
