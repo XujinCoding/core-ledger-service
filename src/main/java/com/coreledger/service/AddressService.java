@@ -209,7 +209,7 @@ public class AddressService {
         SysAddress targetAddress = addressRepository.findByIdAndStatus(addressId, Status.ACTIVE)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.ADDRESS_NOT_FOUND));
 
-        // 2. 向a
+        // 2. 向上递归查询父级地址
         List<SysAddress> addressChain = new ArrayList<>();
         addressChain.add(targetAddress);
         
@@ -257,5 +257,41 @@ public class AddressService {
                 addressId, addressChain.size(), chainVO.getFullPath());
 
         return chainVO;
+    }
+
+    /**
+     * 获取指定父级地址下的所有子地址ID列表（递归查询所有子孙地址）
+     *
+     * @param parentAddressId 父级地址ID
+     * @return 所有子地址ID列表（包括所有子孙地址）
+     */
+    public List<Long> getAllChildAddressIds(Long parentAddressId) {
+        List<Long> allChildIds = new ArrayList<>();
+        
+        // 递归查询所有子地址
+        collectChildAddressIds(parentAddressId, allChildIds);
+        
+        log.debug("查询父级地址 {} 下的所有子地址ID, 共 {} 个", parentAddressId, allChildIds.size());
+        
+        return allChildIds;
+    }
+
+    /**
+     * 递归收集所有子地址ID
+     *
+     * @param parentId 父级ID
+     * @param resultIds 结果集合
+     */
+    private void collectChildAddressIds(Long parentId, List<Long> resultIds) {
+        // 查询直接子级地址
+        List<SysAddress> children = addressRepository.findByParentIdAndStatus(parentId, Status.ACTIVE);
+        
+        for (SysAddress child : children) {
+            // 添加子地址ID
+            resultIds.add(child.getId());
+            
+            // 递归查询孙地址
+            collectChildAddressIds(child.getId(), resultIds);
+        }
     }
 }

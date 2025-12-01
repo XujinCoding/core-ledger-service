@@ -28,6 +28,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -46,6 +48,7 @@ public class CustomerService {
     private final SysAddressRepository addressRepository;
     private final CustomerHistoryRepository historyRepository;
     private final CustomerConverter customerConverter;
+    private final AddressService addressService;
 
     /**
      * 创建客户
@@ -199,15 +202,23 @@ public class CustomerService {
     /**
      * 条件查询客户列表
      *
+     * <p>当传入地址ID时，会查询该地址下所有子地址（包括子孙地址）的客户</p>
+     *
      * @param dto      查询条件DTO
      * @param pageable 分页参数
      * @return 客户列表
      */
     public Page<CustomerVO> searchCustomers(CustomerSearchDTO dto, Pageable pageable) {
+        List<Long> addressIds = new ArrayList<>();
+        if (dto.getAddressId() != null) {
+            addressIds= addressService.getAllChildAddressIds(dto.getAddressId());
+            // 将父级地址ID也加入查询列表
+            addressIds.add(dto.getAddressId());
+        }
         Specification<Customer> spec = PredicateBuilder.<Customer>and()
                 .like(StrUtil::isNotBlank, "name", dto.getName())
                 .like(StrUtil::isNotBlank, "phone", dto.getPhone())
-                .equal(dto.getAddressId() != null, "addressId", dto.getAddressId())
+                .in("addressId", addressIds)
                 .build();
 
         return customerRepository.findAll(spec, pageable)
