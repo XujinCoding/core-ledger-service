@@ -51,15 +51,6 @@ public class ProductSkuController {
     }
 
     /**
-     * 获取未定价SKU列表
-     */
-    @Operation(summary = "获取未定价SKU", description = "获取商品的未定价SKU（定价管理专用）")
-    @GetMapping("/product/{productId}/unpriced")
-    public Result<List<ProductSkuVO>> getUnpricedSkus(@PathVariable Long productId) {
-        return Result.success(skuService.getUnpricedSkus(productId));
-    }
-
-    /**
      * 获取SKU详情
      */
     @Operation(summary = "获取SKU详情", description = "根据ID获取SKU详细信息")
@@ -88,23 +79,9 @@ public class ProductSkuController {
         return Result.success(String.format("定价成功%d个", successCount), successCount);
     }
 
-    /**
-     * 启用/禁用SKU
-     */
-    @Operation(summary = "启用/禁用SKU", description = "修改SKU状态")
-    @PutMapping("/{id}/status")
-    public Result<ProductSkuVO> updateSkuStatus(@PathVariable Long id,
-                                                @RequestParam Status status) {
-        return Result.success(skuService.updateSkuStatus(id, status));
-    }
-
-    /**
-     * 删除SKU
-     */
-    @Operation(summary = "删除SKU", description = "删除指定SKU")
-    @DeleteMapping("/{id}")
-    public Result<Void> deleteSku(@PathVariable Long id) {
-        skuService.deleteSku(id);
-        return Result.success("删除成功");
+    @Operation(summary = "按名称模糊查询已定价SKU", description = "根据SKU名称（不区分大小写）全模糊查询，返回已定价且启用的SKU列表")
+    @GetMapping("/search/priced")
+    public Result<List<ProductSkuVO>> searchPricedSkusByName(@RequestParam("name") String name) {
+        return Result.success(skuService.searchPricedSkusByName(name));
     }
 }

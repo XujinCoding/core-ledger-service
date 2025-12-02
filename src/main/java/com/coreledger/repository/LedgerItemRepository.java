@@ -1,6 +1,7 @@
 package com.coreledger.repository;
 
 import com.coreledger.entity.LedgerItem;
+import com.coreledger.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -23,7 +24,7 @@ public interface LedgerItemRepository extends JpaRepository<LedgerItem, Long>, J
      * @param status 明细状态（1=有效, 0=已删除）
      * @return 明细列表
      */
-    List<LedgerItem> findByLedgerIdAndStatus(Long ledgerId, Integer status);
+    List<LedgerItem> findByLedgerIdAndStatus(Long ledgerId, Status status);
 
     /**
      * 根据账本ID查询所有有效明细列表
@@ -32,6 +33,6 @@ public interface LedgerItemRepository extends JpaRepository<LedgerItem, Long>, J
      * @return 有效明细列表
      */
     default List<LedgerItem> findActiveByLedgerId(Long ledgerId) {
-        return findByLedgerIdAndStatus(ledgerId, 1);
+        return findByLedgerIdAndStatus(ledgerId, Status.ACTIVE);
     }
 }

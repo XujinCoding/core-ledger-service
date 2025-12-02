@@ -1,6 +1,7 @@
 package com.coreledger.repository;
 
 import com.coreledger.entity.PaymentRecord;
+import com.coreledger.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -23,5 +24,5 @@ public interface PaymentRecordRepository extends JpaRepository<PaymentRecord, Lo
      * @param status 状态（1=有效, 0=已删除）
      * @return 支付记录列表
      */
-    List<PaymentRecord> findByLedgerIdAndStatus(Long ledgerId, Integer status);
+    List<PaymentRecord> findByLedgerIdAndStatus(Long ledgerId, Status status);
 }

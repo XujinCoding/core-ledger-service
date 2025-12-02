@@ -172,6 +172,13 @@ public class ProductSkuService {
         return getProductSkus(productId, PriceStatus.PRICED);
     }
 
+    public List<ProductSkuVO> searchPricedSkusByName(String skuName) {
+        List<ProductSku> skus = skuRepository
+            .findBySkuNameContainingIgnoreCaseAndPriceStatusAndStatusOrderBySortOrderAsc(
+                skuName, PriceStatus.PRICED, Status.ACTIVE);
+        return skus.stream().map(skuConverter::toVO).collect(Collectors.toList());
+    }
+
     /**
      * 获取未定价SKU列表（定价管理专用）
      *

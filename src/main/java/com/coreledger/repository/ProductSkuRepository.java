@@ -43,4 +43,6 @@ public interface ProductSkuRepository extends JpaRepository<ProductSku, Long>, J
      * @param productId 商品ID
      */
     void deleteByProductId(Long productId);
+
+    List<ProductSku> findBySkuNameContainingIgnoreCaseAndPriceStatusAndStatusOrderBySortOrderAsc(String skuName, PriceStatus priceStatus, Status status);
 }

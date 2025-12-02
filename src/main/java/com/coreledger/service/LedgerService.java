@@ -125,7 +125,7 @@ public class LedgerService {
         }
 
         // 3. 查询数据库中的所有有效明细ID
-        List<LedgerItem> dbItems = ledgerItemRepository.findByLedgerIdAndStatus(ledgerId, Status.ACTIVE.getValue());
+        List<LedgerItem> dbItems = ledgerItemRepository.findByLedgerIdAndStatus(ledgerId, Status.ACTIVE);
         List<Long> dbItemIds = dbItems.stream()
                 .map(LedgerItem::getId)
                 .toList();
@@ -423,7 +423,7 @@ public class LedgerService {
      * @param ledger 账单实体
      */
     private void recalculateTotalAmount(Ledger ledger) {
-        BigDecimal totalAmount = ledgerItemRepository.findByLedgerIdAndStatus(ledger.getId(), Status.ACTIVE.getValue())
+        BigDecimal totalAmount = ledgerItemRepository.findByLedgerIdAndStatus(ledger.getId(), Status.ACTIVE)
                 .stream()
                 .map(LedgerItem::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -468,11 +468,11 @@ public class LedgerService {
         vo.setCustomerName(customerName);
 
         // 查询明细
-        List<LedgerItem> items = ledgerItemRepository.findByLedgerIdAndStatus(ledger.getId(), Status.ACTIVE.getValue());
+        List<LedgerItem> items = ledgerItemRepository.findByLedgerIdAndStatus(ledger.getId(), Status.ACTIVE);
         vo.setItems(ledgerItemConverter.toVOList(items));
 
         // 查询支付记录
-        List<PaymentRecord> payments = paymentRecordRepository.findByLedgerIdAndStatus(ledger.getId(), Status.ACTIVE.getValue());
+        List<PaymentRecord> payments = paymentRecordRepository.findByLedgerIdAndStatus(ledger.getId(), Status.ACTIVE);
         vo.setPaymentRecords(paymentRecordConverter.toVOList(payments));
 
         return vo;
