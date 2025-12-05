@@ -52,15 +52,6 @@ public class CustomerController {
         return Result.success(customerService.updateCustomer(id, dto));
     }
 
-    /**
-     * 更新客户地址
-     */
-    @Operation(summary = "更新客户地址", description = "修改客户的关联地址和详细地址")
-    @PutMapping("/{id}/address")
-    public Result<CustomerVO> updateCustomerAddress(@PathVariable Long id,
-                                                     @Valid @RequestBody CustomerAddressUpdateDTO dto) {
-        return Result.success(customerService.updateCustomerAddress(id, dto));
-    }
 
     /**
      * 获取客户详情

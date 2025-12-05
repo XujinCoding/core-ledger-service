@@ -46,131 +46,6 @@ public class ProductSkuService {
     private final ProductAttrValueRepository attrValueRepository;
     private final ProductSkuConverter skuConverter;
 
-    /** SKU数量警告阈值 */
-    private static final int SKU_COUNT_WARNING_THRESHOLD = 100;
-
-    /**
-     * 生成商品SKU（笛卡尔积算法）
-     *
-     * @param productId 商品ID
-     * @throws NotFoundException 当商品不存在时抛出
-     * @throws BusinessException 当商品无属性或SKU数量过多时抛出
-     */
-    @Transactional
-    public void generateSkus(Long productId) {
-        Product product = productRepository.findById(productId)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_NOT_FOUND));
-
-        // 1. 查询商品所有有效属性
-        List<ProductAttr> attrs = attrRepository.findByProductIdAndStatusOrderBySortOrderAsc(
-            productId, Status.ACTIVE);
-
-        if (CollUtil.isEmpty(attrs)) {
-            throw new BusinessException(BusinessCode.PRODUCT_NO_ATTRS);
-        }
-
-        // 2. 查询每个属性的有效属性值
-        Map<ProductAttr, List<ProductAttrValue>> attrValueMap = new LinkedHashMap<>();
-        for (ProductAttr attr : attrs) {
-            List<ProductAttrValue> values = attrValueRepository
-                .findByProductAttrIdAndStatusOrderBySortOrderAsc(attr.getId(), Status.ACTIVE);
-            if (CollUtil.isNotEmpty(values)) {
-                attrValueMap.put(attr, values);
-            }
-        }
-
-        if (attrValueMap.isEmpty()) {
-            log.warn("商品{}没有有效的属性值，无法生成SKU", productId);
-            return;
-        }
-
-        // 3. 计算SKU数量并检查
-        long skuCount = calculateSkuCount(attrValueMap);
-        if (skuCount > SKU_COUNT_WARNING_THRESHOLD) {
-            throw new BusinessException(BusinessCode.PRODUCT_SKU_TOO_MANY,
-                String.format("将生成%d个SKU，超过建议上限%d", skuCount, SKU_COUNT_WARNING_THRESHOLD));
-        }
-
-        // 4. 先删除现有SKU
-        List<ProductSku> existingSkus = skuRepository.findByProductIdAndStatusOrderBySortOrderAsc(
-            productId, Status.ACTIVE);
-        for (ProductSku sku : existingSkus) {
-            skuAttrRepository.deleteBySkuId(sku.getId());
-        }
-        skuRepository.deleteByProductId(productId);
-
-        // 5. 笛卡尔积生成SKU组合
-        List<List<ProductAttrValue>> cartesianProduct = cartesianProduct(
-            new ArrayList<>(attrValueMap.values()));
-
-        int sortOrder = 0;
-        for (List<ProductAttrValue> combination : cartesianProduct) {
-            // 构建SKU名称
-            String skuName = buildSkuName(product.getName(), combination, attrValueMap);
-
-            // 创建SKU
-            ProductSku sku = new ProductSku();
-            sku.setProductId(productId);
-            sku.setSkuName(skuName);
-            sku.setPriceStatus(PriceStatus.UNPRICED);
-            sku.setPrice(BigDecimal.ZERO);
-            sku.setSortOrder(sortOrder++);
-            sku.setStatus(Status.ACTIVE);
-            sku = skuRepository.save(sku);
-
-            // 创建SKU属性关联
-            int attrSortOrder = 0;
-            for (ProductAttrValue attrValue : combination) {
-                ProductAttr attr = findAttrByValueId(attrValueMap, attrValue.getId());
-                if (attr != null) {
-                    ProductSkuAttr skuAttr = new ProductSkuAttr();
-                    skuAttr.setSkuId(sku.getId());
-                    skuAttr.setProductAttrId(attr.getId());
-                    skuAttr.setProductAttrName(attr.getAttrName());
-                    skuAttr.setProductAttrValueId(attrValue.getId());
-                    skuAttr.setProductAttrValueName(attrValue.getValue());
-                    skuAttr.setSortOrder(attrSortOrder++);
-                    skuAttr.setStatus(Status.ACTIVE);
-                    skuAttrRepository.save(skuAttr);
-                }
-            }
-        }
-
-        log.info("商品{}生成SKU成功，共生成{}个SKU", productId, cartesianProduct.size());
-    }
-
-    /**
-     * 获取商品SKU列表
-     *
-     * @param productId 商品ID
-     * @param priceStatus 定价状态（可选）
-     * @return SKU列表
-     */
-    public List<ProductSkuVO> getProductSkus(Long productId, PriceStatus priceStatus) {
-        List<ProductSku> skus;
-        
-        if (priceStatus != null) {
-            skus = skuRepository.findByProductIdAndPriceStatusAndStatusOrderBySortOrderAsc(
-                productId, priceStatus, Status.ACTIVE);
-        } else {
-            skus = skuRepository.findByProductIdAndStatusOrderBySortOrderAsc(
-                productId, Status.ACTIVE);
-        }
-
-        return skus.stream()
-            .map(skuConverter::toVO)
-            .collect(Collectors.toList());
-    }
-
-    /**
-     * 获取已定价SKU列表（业务专用）
-     *
-     * @param productId 商品ID
-     * @return 已定价SKU列表
-     */
-    public List<ProductSkuVO> getPricedSkus(Long productId) {
-        return getProductSkus(productId, PriceStatus.PRICED);
-    }
 
     public List<ProductSkuVO> searchPricedSkusByName(String skuName) {
         List<ProductSku> skus = skuRepository
@@ -179,29 +54,6 @@ public class ProductSkuService {
         return skus.stream().map(skuConverter::toVO).collect(Collectors.toList());
     }
 
-    /**
-     * 获取未定价SKU列表（定价管理专用）
-     *
-     * @param productId 商品ID
-     * @return 未定价SKU列表
-     */
-    public List<ProductSkuVO> getUnpricedSkus(Long productId) {
-        return getProductSkus(productId, PriceStatus.UNPRICED);
-    }
-
-    /**
-     * 获取SKU详情
-     *
-     * @param id SKU ID
-     * @return SKU VO
-     * @throws NotFoundException 当SKU不存在时抛出
-     */
-    public ProductSkuVO getSkuDetail(Long id) {
-        ProductSku sku = skuRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_SKU_NOT_FOUND));
-        
-        return skuConverter.toVO(sku);
-    }
 
     /**
      * 修改SKU价格
@@ -253,43 +105,6 @@ public class ProductSkuService {
         return successCount;
     }
 
-    /**
-     * 启用/禁用SKU
-     *
-     * @param id SKU ID
-     * @param status 状态
-     * @return SKU VO
-     * @throws NotFoundException 当SKU不存在时抛出
-     */
-    @Transactional
-    public ProductSkuVO updateSkuStatus(Long id, Status status) {
-        ProductSku sku = skuRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_SKU_NOT_FOUND));
-
-        sku.setStatus(status);
-        sku = skuRepository.save(sku);
-
-        log.info("更新SKU状态成功, ID: {}, 状态: {}", id, status);
-        return skuConverter.toVO(sku);
-    }
-
-    /**
-     * 删除SKU
-     *
-     * @param id SKU ID
-     * @throws NotFoundException 当SKU不存在时抛出
-     */
-    @Transactional
-    public void deleteSku(Long id) {
-        ProductSku sku = skuRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_SKU_NOT_FOUND));
-
-        // 逻辑删除
-        sku.setStatus(Status.INACTIVE);
-        skuRepository.save(sku);
-
-        log.info("删除SKU成功, ID: {}", id);
-    }
 
     /**
      * 笛卡尔积算法
@@ -366,16 +181,6 @@ public class ProductSkuService {
         return null;
     }
 
-    /**
-     * 计算SKU数量
-     */
-    private long calculateSkuCount(Map<ProductAttr, List<ProductAttrValue>> attrValueMap) {
-        long count = 1;
-        for (List<ProductAttrValue> values : attrValueMap.values()) {
-            count *= values.size();
-        }
-        return count;
-    }
 
     /**
      * 增量更新商品SKU（不删除已有SKU，只增加新的或更新名称）

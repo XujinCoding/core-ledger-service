@@ -147,43 +147,6 @@ public class CustomerService {
         return toVOWithAddressPath(customer);
     }
 
-    /**
-     * 更新客户地址
-     *
-     * @param id  客户ID
-     * @param dto 客户地址更新请求DTO
-     * @return 修改后的客户VO
-     * @throws NotFoundException 当客户不存在时抛出 (BusinessCode.CUSTOMER_NOT_FOUND)
-     * @throws NotFoundException 当地址不存在时抛出 (BusinessCode.ADDRESS_NOT_FOUND)
-     * @throws BusinessException 当地址不是村级地址时抛出 (BusinessCode.ADDRESS_MUST_BE_VILLAGE)
-     */
-    @Transactional
-    public CustomerVO updateCustomerAddress(Long id, CustomerAddressUpdateDTO dto) {
-        // 1. 查询客户
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
-
-        // 2. 校验地址是否存在且为村级地址
-        SysAddress address = addressRepository.findByIdAndStatus(dto.getAddressId(), Status.ACTIVE)
-                .orElseThrow(() -> new NotFoundException(BusinessCode.ADDRESS_NOT_FOUND));
-
-        if (!address.isVillageLevel()) {
-            throw new BusinessException(BusinessCode.ADDRESS_MUST_BE_VILLAGE);
-        }
-
-        // 3. 更新地址信息
-        customer.setAddressId(dto.getAddressId());
-        customer.setAddressDetail(dto.getAddressDetail());
-        customer = customerRepository.save(customer);
-
-        // 4. 保存客户快照（更新操作）
-        saveCustomerSnapshot(customer, OperationType.UPDATE);
-
-        log.info("更新客户地址成功, ID: {}, 姓名: {}, 新地址ID: {}", id, customer.getName(), dto.getAddressId());
-
-        // 5. 转换为VO并设置地址路径
-        return toVOWithAddressPath(customer);
-    }
 
     /**
      * 获取客户详情

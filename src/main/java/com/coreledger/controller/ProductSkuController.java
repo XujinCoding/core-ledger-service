@@ -32,34 +32,6 @@ public class ProductSkuController {
     private final ProductSkuService skuService;
 
     /**
-     * 获取商品SKU列表
-     */
-    @Operation(summary = "获取商品SKU列表", description = "获取指定商品的所有SKU（支持定价状态筛选）")
-    @GetMapping("/product/{productId}")
-    public Result<List<ProductSkuVO>> getProductSkus(@PathVariable Long productId,
-                                                     @RequestParam(required = false) PriceStatus priceStatus) {
-        return Result.success(skuService.getProductSkus(productId, priceStatus));
-    }
-
-    /**
-     * 获取已定价SKU列表
-     */
-    @Operation(summary = "获取已定价SKU", description = "获取商品的已定价SKU（业务专用）")
-    @GetMapping("/product/{productId}/priced")
-    public Result<List<ProductSkuVO>> getPricedSkus(@PathVariable Long productId) {
-        return Result.success(skuService.getPricedSkus(productId));
-    }
-
-    /**
-     * 获取SKU详情
-     */
-    @Operation(summary = "获取SKU详情", description = "根据ID获取SKU详细信息")
-    @GetMapping("/{id}")
-    public Result<ProductSkuVO> getSkuDetail(@PathVariable Long id) {
-        return Result.success(skuService.getSkuDetail(id));
-    }
-
-    /**
      * 修改SKU价格
      */
     @Operation(summary = "修改SKU价格", description = "修改单个SKU的价格（价格必须>0）")

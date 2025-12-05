@@ -38,16 +38,6 @@ public class AuthController {
     }
 
     /**
-     * 补充用户信息（已存在用户）
-     */
-    @Operation(summary = "补充用户信息", description = "已存在用户补充手机号等信息")
-    @PostMapping("/supplement-info")
-    public Result<LoginVO> supplementUserInfo(@Valid @RequestBody SupplementUserInfoDTO dto) {
-        LoginVO loginVO = authService.supplementUserInfo(dto);
-        return Result.success(loginVO);
-    }
-
-    /**
      * 注册新用户
      */
     @Operation(summary = "注册新用户", description = "新用户注册并补充信息")

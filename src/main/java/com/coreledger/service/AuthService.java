@@ -66,54 +66,6 @@ public class AuthService {
             return LoginVO.needRegister(openid);
         }
 
-        // 4. 用户存在，检查信息是否完整
-        if (isUserInfoIncomplete(user)) {
-            log.info("用户信息不完整，需要补充: userId={}, openid={}", user.getId(), openid);
-            return LoginVO.needSupplement(openid);
-        }
-
-        // 6. 生成 Token 并返回
-        return generateLoginResponse(user);
-    }
-
-    /**
-     * 补充用户信息（已存在用户）
-     *
-     * @param dto 补充信息请求
-     * @return 登录响应
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public LoginVO supplementUserInfo(SupplementUserInfoDTO dto) {
-        String openid = dto.getOpenid();
-        String phone = dto.getPhone();
-
-        // 1. 查找用户
-        SysUser user = sysUserRepository.findByWxOpenidAndStatus(openid, Status.ACTIVE)
-                .orElseThrow(() -> {
-                    log.warn("用户不存在: openid={}", openid);
-                    return new BusinessException(BusinessCode.USER_NOT_FOUND, "用户不存在");
-                });
-
-        // 2. 检查手机号是否已被其他用户绑定
-        SysUser existingUser = sysUserRepository.findByPhoneAndStatus(phone, Status.ACTIVE).orElse(null);
-        if (existingUser != null && !existingUser.getId().equals(user.getId())) {
-            log.warn("手机号已被其他用户绑定: phone={}", phone);
-            throw new BusinessException(BusinessCode.PHONE_ALREADY_BOUND);
-        }
-
-        // 3. 更新用户信息
-        user.setPhone(phone);
-
-        if (StrUtil.isNotBlank(dto.getNickname())) {
-            user.setWxNickname(dto.getNickname());
-        }
-        if (StrUtil.isNotBlank(dto.getAvatarUrl())) {
-            user.setWxAvatarUrl(dto.getAvatarUrl());
-        }
-
-        user = sysUserRepository.save(user);
-        log.info("补充用户信息成功: userId={}, phone={}", user.getId(), phone);
-
         // 4. 生成 Token 并返回
         return generateLoginResponse(user);
     }
@@ -161,6 +113,7 @@ public class AuthService {
 
         user = sysUserRepository.save(user);
         log.info("注册新用户成功: userId={}, phone={}, openid={}", user.getId(), phone, openid);
+        //TODO 创建 Customer, 同时绑定用户
 
         // 4. 生成 Token 并返回
         return generateLoginResponse(user);

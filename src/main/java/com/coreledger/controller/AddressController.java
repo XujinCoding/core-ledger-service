@@ -60,30 +60,12 @@ public class AddressController {
     }
 
     /**
-     * 获取顶级地址（省）
-     */
-    @Operation(summary = "获取顶级地址", description = "获取所有省份列表")
-    @GetMapping("/top")
-    public Result<List<AddressVO>> listTopAddresses() {
-        return Result.success(addressService.listTopAddresses());
-    }
-
-    /**
      * 根据父级ID查询子级地址
      */
     @Operation(summary = "查询子级地址", description = "根据父级ID查询下一级地址（用于级联选择）")
     @GetMapping("/children/{parentId}")
     public Result<List<AddressVO>> listAddressesByParent(@PathVariable Long parentId) {
         return Result.success(addressService.listAddressesByParent(parentId));
-    }
-
-    /**
-     * 查询村级地址
-     */
-    @Operation(summary = "查询村级地址", description = "根据父级ID（镇/乡）查询村级地址，用于客户地址选择")
-    @GetMapping("/village/{parentId}")
-    public Result<List<AddressVO>> listVillageAddresses(@PathVariable Long parentId) {
-        return Result.success(addressService.listVillageAddresses(parentId));
     }
 
     /**

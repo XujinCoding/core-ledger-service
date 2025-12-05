@@ -64,13 +64,4 @@ public class SysUser extends BaseEntity {
      */
     @Column(name = "wx_avatar_url", length = 500)
     private String wxAvatarUrl;
-
-    /**
-     * 判断是否为管理员
-     *
-     * @return true=管理员, false=普通用户
-     */
-    public boolean isAdmin() {
-        return UserRole.ADMIN.equals(this.role);
-    }
 }

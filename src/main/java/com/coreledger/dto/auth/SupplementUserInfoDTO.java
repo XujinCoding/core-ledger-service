@@ -47,4 +47,10 @@ public class SupplementUserInfoDTO {
      */
     @Schema(description = "用户名", example = "zhangsan")
     private String username;
+
+    /**
+     * 地址标识
+     */
+    @Schema(description = "地址表示", example = "10000")
+    private Long addressId;
 }

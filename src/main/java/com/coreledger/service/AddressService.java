@@ -146,20 +146,6 @@ public class AddressService {
     }
 
     /**
-     * 获取顶级地址列表（省）
-     *
-     * @return 省份列表
-     */
-    public List<AddressVO> listTopAddresses() {
-        List<SysAddress> addresses = addressRepository.findByParentIdAndStatus(0L, Status.ACTIVE);
-        log.debug("查询顶级地址（省），结果数量: {}", addresses.size());
-
-        return addresses.stream()
-                .map(addressConverter::toVO)
-                .collect(Collectors.toList());
-    }
-
-    /**
      * 根据父级ID查询子级地址
      *
      * @param parentId 父级ID
@@ -174,25 +160,6 @@ public class AddressService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 查询村级地址（可用于客户地址）
-     *
-     * @param parentId 父级ID（镇/乡级别）
-     * @return 村级地址列表
-     */
-    public List<AddressVO> listVillageAddresses(Long parentId) {
-        List<SysAddress> addresses = addressRepository.findByParentIdAndStatus(parentId, Status.ACTIVE);
-        
-        // 过滤出村级地址（level >= 4）
-        List<AddressVO> villageAddresses = addresses.stream()
-                .filter(SysAddress::isVillageLevel)
-                .map(addressConverter::toVO)
-                .collect(Collectors.toList());
-
-        log.debug("查询村级地址, parentId: {}, 结果数量: {}", parentId, villageAddresses.size());
-        
-        return villageAddresses;
-    }
 
     /**
      * 根据地址ID向上查询地址链（用于回显地址级联选择器）

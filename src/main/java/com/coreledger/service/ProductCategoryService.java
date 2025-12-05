@@ -144,23 +144,6 @@ public class ProductCategoryService {
     }
 
     /**
-     * 获取分类列表（支持分页和父分类筛选）
-     *
-     * @param parentId 父分类ID（可选）
-     * @param pageable 分页参数
-     * @return 分类列表
-     */
-    public Page<CategoryVO> listCategories(Long parentId, Pageable pageable) {
-        Specification<ProductCategory> spec = PredicateBuilder.<ProductCategory>and()
-            .equal("status", Status.ACTIVE)
-            .equal(Objects::nonNull, "parentId", parentId)
-            .build();
-
-        return categoryRepository.findAll(spec, pageable)
-            .map(categoryConverter::toVO);
-    }
-
-    /**
      * 获取分类树
      *
      * @return 分类树
@@ -176,78 +159,6 @@ public class ProductCategoryService {
         return buildTree(allCategories, 0L);
     }
 
-    /**
-     * 获取子分类列表
-     *
-     * @param parentId 父分类ID
-     * @return 子分类列表
-     */
-    public List<CategoryVO> getChildren(Long parentId) {
-        List<ProductCategory> children = categoryRepository.findByParentIdAndStatus(parentId, Status.ACTIVE);
-        return children.stream()
-            .map(categoryConverter::toVO)
-            .collect(Collectors.toList());
-    }
-
-    /**
-     * 移动分类（修改父分类）
-     *
-     * @param id 分类ID
-     * @param newParentId 新父分类ID
-     * @return 分类VO
-     * @throws NotFoundException 当分类或父分类不存在时抛出
-     * @throws BusinessException 当层级超限时抛出
-     */
-    @Transactional
-    public CategoryVO moveCategory(Long id, Long newParentId) {
-        ProductCategory category = categoryRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_CATEGORY_NOT_FOUND));
-
-        // 计算新层级
-        int newLevel = 1;
-        if (newParentId > 0) {
-            ProductCategory newParent = categoryRepository.findById(newParentId)
-                .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_CATEGORY_NOT_FOUND));
-            
-            newLevel = newParent.getLevel() + 1;
-            
-            // 检查层级限制
-            if (newLevel > MAX_LEVEL) {
-                throw new BusinessException(BusinessCode.PRODUCT_CATEGORY_LEVEL_EXCEED);
-            }
-        }
-
-        // 更新分类
-        category.setParentId(newParentId);
-        category.setLevel(newLevel);
-        category = categoryRepository.save(category);
-
-        // 递归更新所有子分类的层级
-        updateChildrenLevel(id);
-        
-        log.info("移动商品分类成功, ID: {}, 新父分类ID: {}, 新层级: {}", id, newParentId, newLevel);
-        return categoryConverter.toVO(category);
-    }
-
-    /**
-     * 启用/禁用分类
-     *
-     * @param id 分类ID
-     * @param status 状态
-     * @return 分类VO
-     * @throws NotFoundException 当分类不存在时抛出
-     */
-    @Transactional
-    public CategoryVO updateStatus(Long id, Status status) {
-        ProductCategory category = categoryRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_CATEGORY_NOT_FOUND));
-
-        category.setStatus(status);
-        category = categoryRepository.save(category);
-        
-        log.info("更新商品分类状态成功, ID: {}, 状态: {}", id, status);
-        return categoryConverter.toVO(category);
-    }
 
     /**
      * 构建分类树
@@ -299,26 +210,6 @@ public class ProductCategoryService {
             }
         } else {
             parent.setChildren(Collections.emptyList());
-        }
-    }
-
-    /**
-     * 递归更新子分类层级
-     *
-     * @param parentId 父分类ID
-     */
-    private void updateChildrenLevel(Long parentId) {
-        List<ProductCategory> children = categoryRepository.findByParentIdAndStatus(parentId, Status.ACTIVE);
-        
-        for (ProductCategory child : children) {
-            ProductCategory parent = categoryRepository.findById(child.getParentId())
-                .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_CATEGORY_NOT_FOUND));
-            
-            child.setLevel(parent.getLevel() + 1);
-            categoryRepository.save(child);
-            
-            // 递归更新子节点
-            updateChildrenLevel(child.getId());
         }
     }
 }

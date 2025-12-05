@@ -159,25 +159,6 @@ public class ProductService {
             .map(this::toDetailVO);
     }
 
-    /**
-     * 启用/禁用商品
-     *
-     * @param id 商品ID
-     * @param status 状态
-     * @return 商品VO
-     * @throws NotFoundException 当商品不存在时抛出
-     */
-    @Transactional
-    public ProductVO updateStatus(Long id, Status status) {
-        Product product = productRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_NOT_FOUND));
-
-        product.setStatus(status);
-        product = productRepository.save(product);
-        
-        log.info("更新商品状态成功, ID: {}, 状态: {}", id, status);
-        return toDetailVO(product);
-    }
 
     /**
      * 转换为详细VO（含属性和SKU）
@@ -207,22 +188,6 @@ public class ProductService {
                 .map(productSkuConverter::toVO)
                 .collect(Collectors.toList())
         );
-        
-        return vo;
-    }
-
-    /**
-     * 转换为简单VO（不含属性和SKU）
-     *
-     * @param product 商品实体
-     * @return 商品VO
-     */
-    private ProductVO toSimpleVO(Product product) {
-        ProductVO vo = productConverter.toVO(product);
-        
-        // 设置分类名称
-        productCategoryRepository.findById(product.getCategoryId())
-            .ifPresent(category -> vo.setCategoryName(category.getName()));
         
         return vo;
     }

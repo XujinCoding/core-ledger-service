@@ -73,16 +73,6 @@ public class ProductCategoryController {
         return Result.success(categoryService.getCategory(id));
     }
 
-    /**
-     * 获取分类列表
-     */
-    @Operation(summary = "获取分类列表", description = "获取分类列表（支持父分类筛选、分页）")
-    @GetMapping
-    public Result<Page<CategoryVO>> listCategories(
-            @RequestParam(required = false) Long parentId,
-            @PageableDefault(size = 20, sort = "sortOrder", direction = Sort.Direction.ASC) Pageable pageable) {
-        return Result.success(categoryService.listCategories(parentId, pageable));
-    }
 
     /**
      * 获取分类树
@@ -91,34 +81,5 @@ public class ProductCategoryController {
     @GetMapping("/tree")
     public Result<List<CategoryTreeVO>> getCategoryTree() {
         return Result.success(categoryService.getCategoryTree());
-    }
-
-    /**
-     * 获取子分类列表
-     */
-    @Operation(summary = "获取子分类", description = "获取指定分类的所有子分类")
-    @GetMapping("/{id}/children")
-    public Result<List<CategoryVO>> getChildren(@PathVariable Long id) {
-        return Result.success(categoryService.getChildren(id));
-    }
-
-    /**
-     * 移动分类
-     */
-    @Operation(summary = "移动分类", description = "修改分类的父分类（会重新计算层级）")
-    @PutMapping("/{id}/move")
-    public Result<CategoryVO> moveCategory(@PathVariable Long id,
-                                           @RequestParam Long newParentId) {
-        return Result.success(categoryService.moveCategory(id, newParentId));
-    }
-
-    /**
-     * 启用/禁用分类
-     */
-    @Operation(summary = "启用/禁用分类", description = "修改分类状态")
-    @PutMapping("/{id}/status")
-    public Result<CategoryVO> updateStatus(@PathVariable Long id,
-                                          @RequestParam Status status) {
-        return Result.success(categoryService.updateStatus(id, status));
     }
 }
