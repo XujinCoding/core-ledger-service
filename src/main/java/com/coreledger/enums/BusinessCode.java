@@ -162,8 +162,29 @@ public enum BusinessCode {
     /** 手机号已被绑定 */
     PHONE_ALREADY_BOUND(5007, "该手机号已被其他账号绑定"),
 
+    /** 用户名已被使用 */
+    USERNAME_ALREADY_USED(5009, "该用户名已被使用"),
+
+    /** 微信账号已注册 */
+    WECHAT_ALREADY_REGISTERED(5010, "该微信账号已注册"),
+
+    /** 商户不存在 */
+    MERCHANT_NOT_FOUND(5011, "商户不存在"),
+
+    /** 客户已绑定 */
+    CUSTOMER_ALREADY_BOUND(5012, "客户已绑定该商户"),
+
+    /** 权限不足 */
+    UNAUTHORIZED_OPERATION(5013, "权限不足"),
+
+    /** 客户已注册 */
+    CUSTOMER_ALREADY_REGISTERED(5015, "该用户已注册为客户"),
+
     /** 功能未实现 */
     NOT_IMPLEMENTED(5008, "功能未实现"),
+
+    /** 无效参数 */
+    INVALID_PARAMETER(5014, "无效参数"),
 
     // ==================== 地址模块 (6000-6999) ====================
     /** 地址不存在 */

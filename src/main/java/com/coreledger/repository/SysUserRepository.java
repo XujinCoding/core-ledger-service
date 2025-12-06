@@ -93,4 +93,13 @@ public interface SysUserRepository extends JpaRepository<SysUser, Long> {
      * @return true=存在, false=不存在
      */
     boolean existsByWxOpenidAndStatus(String wxOpenid, Status status);
+
+    /**
+     * 检查用户名是否存在
+     *
+     * @param username 用户名
+     * @param status 状态
+     * @return true=存在, false=不存在
+     */
+    boolean existsByUsernameAndStatus(String username, Status status);
 }

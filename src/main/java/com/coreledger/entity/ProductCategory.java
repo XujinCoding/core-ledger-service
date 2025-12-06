@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
 /**
  * 商品分类实体
@@ -16,7 +19,13 @@ import lombok.ToString;
 @ToString(callSuper = true)
 @Entity
 @Table(name = "product_category")
+@FilterDef(name = "merchantFilter", parameters = @ParamDef(name = "merchantId", type = Long.class))
+@Filter(name = "merchantFilter", condition = "merchant_id = :merchantId")
 public class ProductCategory extends BaseEntity {
+
+    /** 所属商户ID，用于数据隔离 */
+    @Column(name = "merchant_id", nullable = false)
+    private Long merchantId;
 
     /** 父分类ID */
     @Column(name = "parent_id", nullable = false)

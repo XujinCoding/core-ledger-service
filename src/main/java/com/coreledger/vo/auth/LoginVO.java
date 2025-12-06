@@ -1,10 +1,14 @@
 package com.coreledger.vo.auth;
 
+import com.coreledger.entity.Customer;
+import com.coreledger.entity.Merchant;
+import com.coreledger.enums.IdentityType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 登录响应VO
@@ -52,6 +56,51 @@ public class LoginVO {
     @Schema(description = "Token过期时间", example = "2025-12-01 12:00:00")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime expireTime;
+
+    /**
+     * 是否需要注册身份
+     * true: 用户没有对应身份，需要调用注册接口
+     * false: 已有身份信息或身份列表
+     */
+    @Schema(description = "是否需要注册身份", example = "false")
+    private Boolean needRegister;
+
+    /**
+     * 需要注册的身份类型
+     * MERCHANT_OWNER 或 CUSTOMER
+     */
+    @Schema(description = "需要注册的身份类型", example = "MERCHANT_OWNER")
+    private IdentityType registerType;
+
+    /**
+     * 商户列表（多个商户时返回）
+     */
+    @Schema(description = "商户列表")
+    private List<Merchant> merchants;
+
+    /**
+     * 客户列表（多个客户时返回）
+     */
+    @Schema(description = "客户列表")
+    private List<Customer> customers;
+
+    /**
+     * 已选中的商户ID
+     */
+    @Schema(description = "已选中的商户ID", example = "100")
+    private Long selectedMerchantId;
+
+    /**
+     * 已选中的客户ID
+     */
+    @Schema(description = "已选中的客户ID", example = "200")
+    private Long selectedCustomerId;
+
+    /**
+     * 提示信息
+     */
+    @Schema(description = "提示信息", example = "请选择商户")
+    private String message;
 
     /**
      * 创建成功响应（登录成功）

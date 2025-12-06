@@ -9,10 +9,7 @@ import com.coreledger.dto.customer.CustomerUpdateDTO;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.CustomerHistory;
 import com.coreledger.entity.SysAddress;
-import com.coreledger.enums.BusinessCode;
-import com.coreledger.enums.CustomerType;
-import com.coreledger.enums.OperationType;
-import com.coreledger.enums.Status;
+import com.coreledger.enums.*;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.repository.CustomerHistoryRepository;
@@ -28,9 +25,13 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Random;
 
 /**
  * 客户业务服务类
@@ -62,32 +63,32 @@ public class CustomerService {
     public CustomerVO createCustomer(CustomerCreateDTO dto) {
         // 1. 检查手机号是否已存在
         Customer customer = customerRepository.findByPhone(dto.getPhone()).orElse(null);
-
-        if (customer != null) {
-            // 1.1 如果客户已存在且为潜在客户，激活该客户
-            if (CustomerType.POTENTIAL.equals(customer.getCustomerType())) {
-                // 更新客户信息
-                customer.setName(dto.getName());
-                customer.setAlias(dto.getAlias());
-                customer.setGender(dto.getGender());
-                customer.setAge(dto.getAge());
-                customer.setAddressId(dto.getAddressId());
-                customer.setAddressDetail(dto.getAddressDetail());
-                customer.setCustomerType(CustomerType.ACTIVE);
-
-                customer = customerRepository.save(customer);
-
-                // 保存客户快照（更新操作）
-                saveCustomerSnapshot(customer, OperationType.UPDATE);
-
-                log.info("激活潜在客户成功, ID: {}, 姓名: {}, 手机号: {}", customer.getId(), customer.getName(), customer.getPhone());
-
-                return toVOWithAddressPath(customer);
-            } else {
-                // 1.2 如果已存在且为活跃客户，抛出异常
-                throw new BusinessException(BusinessCode.CUSTOMER_PHONE_EXISTS);
-            }
-        }
+//
+//        if (customer != null) {
+//            // 1.1 如果客户已存在且为潜在客户，激活该客户
+//            if (CustomerType.POTENTIAL.equals(customer.getCustomerType())) {
+//                // 更新客户信息
+//                customer.setName(dto.getName());
+//                customer.setAlias(dto.getAlias());
+//                customer.setGender(dto.getGender());
+//                customer.setAge(dto.getAge());
+//                customer.setAddressId(dto.getAddressId());
+//                customer.setAddressDetail(dto.getAddressDetail());
+//                customer.setCustomerType(CustomerType.FORMAL);
+//
+//                customer = customerRepository.save(customer);
+//
+//                // 保存客户快照（更新操作）
+//                saveCustomerSnapshot(customer, OperationType.UPDATE);
+//
+//                log.info("激活潜在客户成功, ID: {}, 姓名: {}, 手机号: {}", customer.getId(), customer.getName(), customer.getPhone());
+//
+//                return toVOWithAddressPath(customer);
+//            } else {
+//                // 1.2 如果已存在且为活跃客户，抛出异常
+//                throw new BusinessException(BusinessCode.CUSTOMER_PHONE_EXISTS);
+//            }
+//        }
 
         // 2. 校验地址是否存在且为村级地址
         SysAddress address = addressRepository.findByIdAndStatus(dto.getAddressId(), Status.ACTIVE)
@@ -200,7 +201,7 @@ public class CustomerService {
                 .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
 
         // 设置为潜在客户
-        customer.setCustomerType(CustomerType.POTENTIAL);
+        customer.setStatus(Status.ACTIVE);
         customerRepository.save(customer);
 
         // 保存客户快照（删除操作）
@@ -236,5 +237,160 @@ public class CustomerService {
         CustomerHistory history = CustomerHistory.fromCustomer(customer, operationType);
         historyRepository.save(history);
         log.debug("保存客户快照, 客户ID: {}, 操作类型: {}", customer.getId(), operationType.getDescription());
+    }
+
+    /**
+     * 创建客户（用于商户手动创建或客户注册时）
+     */
+    @Transactional
+    public Customer createCustomer(Long merchantId, String customerName, String phone,
+                                   String address, Gender gender, Integer age, Long userId) {
+        // 1. 生成客户编号
+        String customerNo = generateCustomerNo();
+        
+        // 2. 创建客户
+        Customer customer = new Customer();
+        customer.setCustomerNo(customerNo);
+        customer.setMerchantId(merchantId);
+        customer.setName(customerName);
+        customer.setPhone(phone);
+        customer.setAddressDetail(address);
+        customer.setGender(gender != null ? gender : Gender.UNKNOWN);
+        customer.setAge(age);
+        customer.setUserId(userId);
+        customer.setIsRegistered(userId != null ? RegisterStatus.REGISTERED : RegisterStatus.UNREGISTERED);
+        customer.setStatus(Status.ACTIVE);  // 默认启用
+        
+        customer = customerRepository.save(customer);
+        log.info("创建客户成功: customerId={}, customerNo={}", customer.getId(), customerNo);
+        
+        return customer;
+    }
+
+    /**
+     * 绑定客户到用户
+     */
+    @Transactional
+    public Customer bindCustomerToUser(Long customerId, Long userId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
+        
+        customer.setUserId(userId);
+        customer.setIsRegistered(RegisterStatus.REGISTERED);
+        customer = customerRepository.save(customer);
+        
+        log.info("绑定客户成功: customerId={}, userId={}", customerId, userId);
+        
+        return customer;
+    }
+
+    /**
+     * 根据手机号和商户ID查询未注册客户
+     */
+    public Optional<Customer> findUnregisteredCustomerByPhoneAndMerchantId(String phone, Long merchantId) {
+        return customerRepository.findByPhoneAndMerchantIdAndUserIdIsNull(phone, merchantId);
+    }
+
+    /**
+     * 检查user_id和merchant_id是否已存在
+     */
+    public boolean existsByUserIdAndMerchantId(Long userId, Long merchantId) {
+        return customerRepository.existsByUserIdAndMerchantId(userId, merchantId);
+    }
+
+    /**
+     * 根据ID查询客户
+     */
+    public Optional<Customer> findById(Long customerId) {
+        return customerRepository.findById(customerId);
+    }
+
+    /**
+     * 根据用户ID查询该用户是客户的所有关系
+     */
+    public List<Customer> findByUserId(Long userId) {
+        return customerRepository.findByUserId(userId);
+    }
+
+    /**
+     * 根据用户ID查询模板客户（TEMPLATE 类型）
+     */
+    public Optional<Customer> findTemplateByUserId(Long userId) {
+        return customerRepository.findByUserIdAndCustomerType(userId, CustomerType.TEMPLATE);
+    }
+
+    /**
+     * 创建模板客户（TEMPLATE 类型，未绑定商户）
+     * 用于保存用户在首次注册时填写的客户信息
+     */
+    @Transactional
+    public Customer createTemplateCustomer(String customerName, String phone, String alias,
+                                          com.coreledger.enums.Gender gender, Integer age,
+                                          Long userId, Long addressId, String addressDetail) {
+        // 1. 生成客户编号
+        String customerNo = generateCustomerNo();
+
+        // 2. 创建模板客户
+        Customer customer = new Customer();
+        customer.setCustomerNo(customerNo);
+        customer.setMerchantId(null);  // 模板客户不绑定商户
+        customer.setUserId(userId);
+        customer.setName(customerName);
+        customer.setPhone(phone);
+        customer.setAlias(alias);
+        customer.setGender(gender != null ? gender : com.coreledger.enums.Gender.UNKNOWN);
+        customer.setAge(age);
+        customer.setAddressId(addressId);
+        customer.setAddressDetail(addressDetail);
+        customer.setCustomerType(CustomerType.TEMPLATE);  // 标记为模板
+        customer.setIsRegistered(RegisterStatus.REGISTERED);
+        customer.setStatus(Status.ACTIVE);
+
+        customer = customerRepository.save(customer);
+        log.info("创建模板客户成功: customerId={}, customerNo={}, userId={}", customer.getId(), customerNo, userId);
+
+        return customer;
+    }
+
+    /**
+     * 从模板客户创建正式客户（FORMAL 类型）
+     * 用于客户绑定商户时，从模板复制数据创建正式客户
+     */
+    @Transactional
+    public Customer createFormalCustomerFromTemplate(Customer templateCustomer, Long merchantId) {
+        // 1. 生成客户编号
+        String customerNo = generateCustomerNo();
+
+        // 2. 从模板复制数据创建正式客户
+        Customer formalCustomer = new Customer();
+        formalCustomer.setCustomerNo(customerNo);
+        formalCustomer.setMerchantId(merchantId);  // 绑定商户
+        formalCustomer.setUserId(templateCustomer.getUserId());
+        formalCustomer.setName(templateCustomer.getName());
+        formalCustomer.setPhone(templateCustomer.getPhone());
+        formalCustomer.setAlias(templateCustomer.getAlias());
+        formalCustomer.setGender(templateCustomer.getGender());
+        formalCustomer.setAge(templateCustomer.getAge());
+        formalCustomer.setAddressId(templateCustomer.getAddressId());
+        formalCustomer.setAddressDetail(templateCustomer.getAddressDetail());
+        formalCustomer.setCustomerType(CustomerType.FORMAL);  // 标记为正式
+        formalCustomer.setIsRegistered(RegisterStatus.REGISTERED);
+        formalCustomer.setStatus(Status.ACTIVE);
+
+        formalCustomer = customerRepository.save(formalCustomer);
+        log.info("从模板创建正式客户成功: formalCustomerId={}, templateCustomerId={}, merchantId={}", 
+                formalCustomer.getId(), templateCustomer.getId(), merchantId);
+
+        return formalCustomer;
+    }
+
+    /**
+     * 生成客户编号
+     * 格式: C_yyyyMMddHHmmss_随机3位
+     */
+    private String generateCustomerNo() {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String random = String.format("%03d", new Random().nextInt(1000));
+        return "C_" + timestamp + "_" + random;
     }
 }

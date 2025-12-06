@@ -6,6 +6,7 @@ import com.coreledger.config.converter.OperationTypeConverter;
 import com.coreledger.enums.CustomerType;
 import com.coreledger.enums.Gender;
 import com.coreledger.enums.OperationType;
+import com.coreledger.utils.AppSessionContext;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -137,9 +138,9 @@ public class CustomerHistory {
         history.setStatus(1); // 默认状态为启用
         history.setOperationType(operationType);
         history.setOperationTime(customer.getModifyInstant());
-        // TODO: 从上下文获取操作人信息
-        // history.setOperatorId(currentUserId);
-        // history.setOperatorName(currentUserName);
+        AppSessionContext.getUsername();
+         history.setOperatorId(AppSessionContext.getUserId());
+         history.setOperatorName(AppSessionContext.getUsername());
         return history;
     }
 }

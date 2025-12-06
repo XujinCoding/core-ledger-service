@@ -1,7 +1,9 @@
 package com.coreledger.dto.auth;
 
+import com.coreledger.enums.IdentityType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -44,4 +46,13 @@ public class WechatLoginDTO {
      */
     @Schema(description = "微信头像URL", example = "https://thirdwx.qlogo.cn/...")
     private String avatarUrl;
+
+    /**
+     * 身份类型（必需）
+     * MERCHANT_OWNER: 商户登录
+     * CUSTOMER: 客户登录
+     */
+    @NotNull(message = "身份类型不能为空")
+    @Schema(description = "身份类型", required = true, example = "MERCHANT_OWNER")
+    private IdentityType identityType;
 }
