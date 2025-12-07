@@ -19,6 +19,7 @@ import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.exception.UnauthorizedException;
 import com.coreledger.repository.SysUserRepository;
+import com.coreledger.utils.AppSessionContext;
 import com.coreledger.utils.TokenUtil;
 import com.coreledger.utils.WechatUtil;
 import com.coreledger.vo.auth.LoginVO;
@@ -28,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -149,7 +151,7 @@ public class AuthService {
      */
     private LoginVO handleCustomerLogin(SysUser user) {
         // 1. 查询用户是客户的所有关系
-        List<Customer> customers = customerService.findByUserId(user.getId());
+        List<Customer> customers = customerService.findFormalByUserId(user.getId());
 
         if (customers.isEmpty()) {
             // 没有客户：需要注册
@@ -452,19 +454,24 @@ public class AuthService {
                 .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
 
         // 2. 从 Token 获取当前用户
-        UserInfoVO userInfo = getCurrentUser(dto.getToken());
-        SysUser user = sysUserRepository.findById(userInfo.getId())
+        Long userId = AppSessionContext.getUserId();
+        SysUser user = sysUserRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
 
         // 3. 检查用户是否有模板客户
         Customer templateCustomer = customerService.findTemplateByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(BusinessCode.CUSTOMER_NOT_FOUND, "请先完成客户注册"));
+        Customer formalCustomer = customerService.findUnregisteredCustomerByPhoneAndMerchantId(user.getPhone(), merchant.getId()).orElse(null);
+        if(Objects.nonNull(formalCustomer)){
+            customerService.bindCustomerToUser(formalCustomer.getId(),userId);
+        }else{
+            //4. 从模板复制数据创建正式客户（FORMAL 类型）
+            formalCustomer = customerService.createFormalCustomerFromTemplate(
+                    templateCustomer,
+                    merchant.getId()
+            );
+        }
 
-        // 4. 从模板复制数据创建正式客户（FORMAL 类型）
-        Customer formalCustomer = customerService.createFormalCustomerFromTemplate(
-                templateCustomer,
-                merchant.getId()
-        );
 
         log.info("客户绑定商户成功: userId={}, customerId={}, merchantId={}, templateCustomerId={}",
                 user.getId(), formalCustomer.getId(), merchant.getId(), templateCustomer.getId());
@@ -549,7 +556,7 @@ public class AuthService {
 
         } else if (userInfo.getIdentityType() == IdentityType.CUSTOMER) {
             // 客户登录：返回该用户是客户的所有关系
-            List<Customer> customers = customerService.findByUserId(user.getId());
+            List<Customer> customers = customerService.findFormalByUserId(user.getId());
             response.setCustomers(customers);
             log.info("获取客户身份列表: userId={}, customerCount={}", user.getId(), customers.size());
 

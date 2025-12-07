@@ -2,7 +2,6 @@ package com.coreledger.service;
 
 import cn.hutool.core.util.StrUtil;
 import com.coreledger.common.mapper.customer.CustomerConverter;
-import com.coreledger.dto.customer.CustomerAddressUpdateDTO;
 import com.coreledger.dto.customer.CustomerCreateDTO;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
@@ -61,36 +60,7 @@ public class CustomerService {
      */
     @Transactional
     public CustomerVO createCustomer(CustomerCreateDTO dto) {
-        // 1. 检查手机号是否已存在
-        Customer customer = customerRepository.findByPhone(dto.getPhone()).orElse(null);
-//
-//        if (customer != null) {
-//            // 1.1 如果客户已存在且为潜在客户，激活该客户
-//            if (CustomerType.POTENTIAL.equals(customer.getCustomerType())) {
-//                // 更新客户信息
-//                customer.setName(dto.getName());
-//                customer.setAlias(dto.getAlias());
-//                customer.setGender(dto.getGender());
-//                customer.setAge(dto.getAge());
-//                customer.setAddressId(dto.getAddressId());
-//                customer.setAddressDetail(dto.getAddressDetail());
-//                customer.setCustomerType(CustomerType.FORMAL);
-//
-//                customer = customerRepository.save(customer);
-//
-//                // 保存客户快照（更新操作）
-//                saveCustomerSnapshot(customer, OperationType.UPDATE);
-//
-//                log.info("激活潜在客户成功, ID: {}, 姓名: {}, 手机号: {}", customer.getId(), customer.getName(), customer.getPhone());
-//
-//                return toVOWithAddressPath(customer);
-//            } else {
-//                // 1.2 如果已存在且为活跃客户，抛出异常
-//                throw new BusinessException(BusinessCode.CUSTOMER_PHONE_EXISTS);
-//            }
-//        }
-
-        // 2. 校验地址是否存在且为村级地址
+        // 1. 校验地址是否存在且为村级地址
         SysAddress address = addressRepository.findByIdAndStatus(dto.getAddressId(), Status.ACTIVE)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.ADDRESS_NOT_FOUND));
 
@@ -98,16 +68,17 @@ public class CustomerService {
             throw new BusinessException(BusinessCode.ADDRESS_MUST_BE_VILLAGE);
         }
 
-        // 3. 创建新客户
-        customer = customerConverter.toEntity(dto);
+        // 2. 创建新客户
+        Customer customer = customerConverter.toEntity(dto);
+        customer.setCustomerNo(generateCustomerNo());
         customer = customerRepository.save(customer);
 
-        // 4. 保存客户快照（创建操作）
+        // 3. 保存客户快照（创建操作）
         saveCustomerSnapshot(customer, OperationType.CREATE);
 
         log.info("创建客户成功, ID: {}, 姓名: {}, 手机号: {}", customer.getId(), customer.getName(), customer.getPhone());
 
-        // 5. 转换为VO并设置地址路径
+        // 4. 转换为VO并设置地址路径
         return toVOWithAddressPath(customer);
     }
 
@@ -308,15 +279,15 @@ public class CustomerService {
     /**
      * 根据用户ID查询该用户是客户的所有关系
      */
-    public List<Customer> findByUserId(Long userId) {
-        return customerRepository.findByUserId(userId);
+    public List<Customer> findFormalByUserId(Long userId) {
+        return customerRepository.findByUserIdAndCustomerType(userId,CustomerType.FORMAL);
     }
 
     /**
      * 根据用户ID查询模板客户（TEMPLATE 类型）
      */
     public Optional<Customer> findTemplateByUserId(Long userId) {
-        return customerRepository.findByUserIdAndCustomerType(userId, CustomerType.TEMPLATE);
+        return customerRepository.findByUserIdAndCustomerType(userId, CustomerType.TEMPLATE).stream().findFirst();
     }
 
     /**

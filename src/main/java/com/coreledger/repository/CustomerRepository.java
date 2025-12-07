@@ -37,11 +37,6 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
     List<Customer> findByUserId(Long userId);
 
     /**
-     * 根据user_id和merchant_id和状态查询
-     */
-    Optional<Customer> findByUserIdAndMerchantIdAndStatus(Long userId, Long merchantId, Integer status);
-
-    /**
      * 根据phone和merchant_id查询
      */
     Optional<Customer> findByPhoneAndMerchantId(String phone, Long merchantId);
@@ -64,5 +59,5 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
     /**
      * 根据user_id和customer_type查询客户
      */
-    Optional<Customer> findByUserIdAndCustomerType(Long userId, CustomerType customerType);
+    List<Customer> findByUserIdAndCustomerType(Long userId, CustomerType customerType);
 }
