@@ -80,7 +80,7 @@ public class LedgerService {
         ledger.setTotalAmount(BigDecimal.ZERO);
         ledger.setPaidAmount(BigDecimal.ZERO);
         ledger.setDiscountAmount(BigDecimal.ZERO);
-
+        ledger.setMerchantId(dto.getMerchantId());
         ledger = ledgerRepository.save(ledger);
 
         // 3. 创建明细（如果有）

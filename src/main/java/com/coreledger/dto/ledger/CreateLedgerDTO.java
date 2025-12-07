@@ -27,4 +27,8 @@ public class CreateLedgerDTO {
     /** 备注 */
     @Size(max = 255, message = "备注长度不能超过255个字符")
     private String memo;
+
+    /** 账单标识 */
+    @NotNull(message = "客户ID不能为空")
+    private Long merchantId;
 }
