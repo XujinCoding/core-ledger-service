@@ -16,6 +16,7 @@ import com.coreledger.vo.product.CategoryTreeVO;
 import com.coreledger.vo.product.CategoryVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,14 +47,26 @@ public class ProductCategoryService {
      * @param dto 创建DTO
      * @return 分类VO
      * @throws BusinessException 当父分类不存在或层级超限时抛出
+     * @throws BusinessException 当商户ID为空时抛出
      */
     @Transactional
     public CategoryVO createCategory(CategoryCreateDTO dto) {
+        // 获取当前商户ID
+        Long merchantId = AppSessionContext.getMerchantId();
+        if (merchantId == null) {
+            throw new BusinessException(BusinessCode.INVALID_PARAMETER, "商户ID不能为空");
+        }
+
         // 计算层级
         int level = 1;
         if (dto.getParentId() > 0) {
             ProductCategory parent = categoryRepository.findById(dto.getParentId())
                 .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_CATEGORY_NOT_FOUND));
+            
+            // 验证父分类属于同一商户
+            if (!parent.getMerchantId().equals(merchantId)) {
+                throw new BusinessException(BusinessCode.UNAUTHORIZED_OPERATION, "无权访问其他商户的分类");
+            }
             
             level = parent.getLevel() + 1;
             
@@ -65,12 +78,13 @@ public class ProductCategoryService {
 
         // 创建分类
         ProductCategory category = categoryConverter.toEntity(dto);
+        category.setMerchantId(merchantId);
         category.setLevel(level);
         category.setStatus(Status.ACTIVE);
 
         category = categoryRepository.save(category);
         
-        log.info("创建商品分类成功, ID: {}, 名称: {}, 层级: {}", category.getId(), category.getName(), level);
+        log.info("创建商品分类成功, ID: {}, 名称: {}, 层级: {}, 商户ID: {}", category.getId(), category.getName(), level, merchantId);
         return categoryConverter.toVO(category);
     }
 
@@ -81,11 +95,11 @@ public class ProductCategoryService {
      * @param dto 更新DTO
      * @return 分类VO
      * @throws NotFoundException 当分类不存在时抛出
+     * @throws BusinessException 当商户ID为空或无权访问时抛出
      */
     @Transactional
     public CategoryVO updateCategory(Long id, CategoryUpdateDTO dto) {
-        ProductCategory category = categoryRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_CATEGORY_NOT_FOUND));
+        ProductCategory category = getAndCheckCategory(id);
 
         categoryConverter.updateEntity(dto, category);
         category = categoryRepository.save(category);
@@ -100,11 +114,12 @@ public class ProductCategoryService {
      * @param id 分类ID
      * @throws NotFoundException 当分类不存在时抛出
      * @throws BusinessException 当分类下存在子分类或商品时抛出
+     * @throws BusinessException 当商户ID为空或无权访问时抛出
      */
     @Transactional
     public void deleteCategory(Long id) {
-        ProductCategory category = categoryRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_CATEGORY_NOT_FOUND));
+        ProductCategory category = getAndCheckCategory(id);
+
 
         // 检查是否有子分类
         long childCount = categoryRepository.countByParentIdAndStatus(id, Status.ACTIVE);
@@ -131,12 +146,29 @@ public class ProductCategoryService {
      * @param id 分类ID
      * @return 分类VO
      * @throws NotFoundException 当分类不存在时抛出
+     * @throws BusinessException 当商户ID为空或无权访问时抛出
      */
     public CategoryVO getCategory(Long id) {
+        // 获取当前商户ID
+        ProductCategory category = getAndCheckCategory(id);
+
+        return categoryConverter.toVO(category);
+    }
+
+    private @NotNull ProductCategory getAndCheckCategory(Long id) {
+        Long merchantId = AppSessionContext.getMerchantId();
+        if (merchantId == null) {
+            throw new BusinessException(BusinessCode.INVALID_PARAMETER, "商户ID不能为空");
+        }
+
         ProductCategory category = categoryRepository.findById(id)
             .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_CATEGORY_NOT_FOUND));
-        
-        return categoryConverter.toVO(category);
+
+        // 验证分类属于当前商户
+        if (!category.getMerchantId().equals(merchantId)) {
+            throw new BusinessException(BusinessCode.UNAUTHORIZED_OPERATION, "无权访问其他商户的分类");
+        }
+        return category;
     }
 
     /**
@@ -161,7 +193,6 @@ public class ProductCategoryService {
      * 构建分类树
      *
      * @param allCategories 所有分类
-     * @param parentId 父分类ID
      * @return 分类树
      */
     private List<CategoryTreeVO> buildTree(List<ProductCategory> allCategories, Long rootParentId) {
