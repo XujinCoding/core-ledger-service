@@ -138,16 +138,7 @@ public class AuthService {
         user.setWxAvatarUrl(dto.getAvatarUrl());
         sysUserRepository.save(user);
 
-        Customer templateCustomer = customerService.createTemplateCustomer(
-                dto.getCustomerName(),
-                dto.getPhone(),
-                dto.getAlias(),
-                dto.getGender(),
-                dto.getAge(),
-                user.getId(),
-                dto.getAddressId(),
-                dto.getAddressDetail()
-        );
+        Customer templateCustomer = customerService.createTemplateCustomer(dto, user.getId());
 
         log.info("客户注册成功（创建模板客户）: userId={}, templateCustomerId={}, phone={}",
                 user.getId(), templateCustomer.getId(), dto.getPhone());

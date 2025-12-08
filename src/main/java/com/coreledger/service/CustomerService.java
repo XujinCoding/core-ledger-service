@@ -2,6 +2,7 @@ package com.coreledger.service;
 
 import cn.hutool.core.util.StrUtil;
 import com.coreledger.common.mapper.customer.CustomerConverter;
+import com.coreledger.dto.auth.CustomerRegisterDTO;
 import com.coreledger.dto.customer.CustomerCreateDTO;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
@@ -295,9 +296,7 @@ public class CustomerService {
      * 用于保存用户在首次注册时填写的客户信息
      */
     @Transactional
-    public Customer createTemplateCustomer(String customerName, String phone, String alias,
-                                          com.coreledger.enums.Gender gender, Integer age,
-                                          Long userId, Long addressId, String addressDetail) {
+    public Customer createTemplateCustomer(CustomerRegisterDTO dto, Long userId) {
         // 1. 生成客户编号
         String customerNo = generateCustomerNo();
 
@@ -306,13 +305,13 @@ public class CustomerService {
         customer.setCustomerNo(customerNo);
         customer.setMerchantId(null);  // 模板客户不绑定商户
         customer.setUserId(userId);
-        customer.setName(customerName);
-        customer.setPhone(phone);
-        customer.setAlias(alias);
-        customer.setGender(gender != null ? gender : com.coreledger.enums.Gender.UNKNOWN);
-        customer.setAge(age);
-        customer.setAddressId(addressId);
-        customer.setAddressDetail(addressDetail);
+        customer.setName(dto.getCustomerName());
+        customer.setPhone(dto.getPhone());
+        customer.setAlias(dto.getAlias());
+        customer.setGender(dto.getGender() != null ? dto.getGender() : com.coreledger.enums.Gender.UNKNOWN);
+        customer.setAge(dto.getAge());
+        customer.setAddressId(dto.getAddressId());
+        customer.setAddressDetail(dto.getAddressDetail());
         customer.setCustomerType(CustomerType.TEMPLATE);  // 标记为模板
         customer.setIsRegistered(RegisterStatus.REGISTERED);
         customer.setStatus(Status.ACTIVE);
