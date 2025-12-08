@@ -1,8 +1,6 @@
 package com.coreledger.controller;
 
 import com.coreledger.common.Result;
-import com.coreledger.dto.customer.CustomerAddressUpdateDTO;
-import com.coreledger.dto.customer.CustomerCreateDTO;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
 import com.coreledger.service.CustomerService;
@@ -32,15 +30,6 @@ import org.springframework.web.bind.annotation.*;
 public class CustomerController {
 
     private final CustomerService customerService;
-
-    /**
-     * 创建客户
-     */
-    @Operation(summary = "创建客户", description = "创建新客户（手机号不能重复，地址必须为村级）")
-    @PostMapping
-    public Result<CustomerVO> createCustomer(@Valid @RequestBody CustomerCreateDTO dto) {
-        return Result.success(customerService.createCustomer(dto));
-    }
 
     /**
      * 修改客户

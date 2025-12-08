@@ -1,7 +1,7 @@
 package com.coreledger.service;
 
-import cn.hutool.core.util.StrUtil;
 import com.coreledger.common.mapper.product.ProductCategoryConverter;
+import com.coreledger.utils.AppSessionContext;
 import com.coreledger.utils.specification.PredicateBuilder;
 import com.coreledger.dto.product.CategoryCreateDTO;
 import com.coreledger.dto.product.CategoryUpdateDTO;
@@ -16,14 +16,10 @@ import com.coreledger.vo.product.CategoryTreeVO;
 import com.coreledger.vo.product.CategoryVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 商品分类Service
@@ -150,9 +146,10 @@ public class ProductCategoryService {
      */
     public List<CategoryTreeVO> getCategoryTree() {
         List<ProductCategory> allCategories = categoryRepository.findAll(
-            PredicateBuilder.<ProductCategory>and()
-                .equal("status", Status.ACTIVE)
-                .build()
+                PredicateBuilder.<ProductCategory>and()
+                        .equal("merchant_id", AppSessionContext.getMerchantId())
+                        .equal("status", Status.ACTIVE)
+                        .build()
         );
 
         // 构建树形结构

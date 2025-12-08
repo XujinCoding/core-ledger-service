@@ -4,9 +4,7 @@ import com.coreledger.common.Result;
 import com.coreledger.dto.merchant.CreateCustomerDTO;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.Merchant;
-import com.coreledger.entity.SysUser;
 import com.coreledger.enums.BusinessCode;
-import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.service.CustomerService;
 import com.coreledger.service.MerchantService;
@@ -38,21 +36,12 @@ public class MerchantController {
     @PostMapping("/customer/create")
     @Operation(summary = "创建客户")
     public Result<Customer> createCustomer(@RequestBody CreateCustomerDTO dto) {
-        // 1. 获取当前用户（商户）
-        // TODO: 从 SecurityContext 获取当前用户
-        // SysUser user = getCurrentUser();
         
-        // 2. 查询商户
+        // 1. 查询商户
         Merchant merchant = merchantService.findById(dto.getMerchantId())
                 .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
-        
-        // 3. 验证权限（只有商户所有者可以创建客户）
-        // TODO: 验证当前用户是否是商户所有者
-        // if (!merchant.getOwnerUserId().equals(user.getId())) {
-        //     throw new BusinessException(BusinessCode.UNAUTHORIZED_OPERATION);
-        // }
-        
-        // 4. 创建客户
+
+        // 2. 创建客户
         Customer customer = customerService.createCustomer(
                 merchant.getId(),
                 dto.getCustomerName(),
@@ -62,7 +51,6 @@ public class MerchantController {
                 dto.getAge(),
                 null  // 商户手动创建时，user_id为NULL
         );
-        
         return Result.success(customer);
     }
 

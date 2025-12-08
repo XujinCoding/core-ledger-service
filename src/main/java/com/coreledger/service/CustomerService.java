@@ -52,38 +52,6 @@ public class CustomerService {
     private final AddressService addressService;
 
     /**
-     * 创建客户
-     *
-     * @param dto 客户创建请求DTO
-     * @return 创建成功的客户VO
-     * @throws NotFoundException 当地址不存在时抛出 (BusinessCode.ADDRESS_NOT_FOUND)
-     * @throws BusinessException 当地址不是村级地址时抛出 (BusinessCode.ADDRESS_MUST_BE_VILLAGE)
-     */
-    @Transactional
-    public CustomerVO createCustomer(CustomerCreateDTO dto) {
-        // 1. 校验地址是否存在且为村级地址
-        SysAddress address = addressRepository.findByIdAndStatus(dto.getAddressId(), Status.ACTIVE)
-                .orElseThrow(() -> new NotFoundException(BusinessCode.ADDRESS_NOT_FOUND));
-
-        if (!address.isVillageLevel()) {
-            throw new BusinessException(BusinessCode.ADDRESS_MUST_BE_VILLAGE);
-        }
-
-        // 2. 创建新客户
-        Customer customer = customerConverter.toEntity(dto);
-        customer.setCustomerNo(generateCustomerNo());
-        customer = customerRepository.save(customer);
-
-        // 3. 保存客户快照（创建操作）
-        saveCustomerSnapshot(customer, OperationType.CREATE);
-
-        log.info("创建客户成功, ID: {}, 姓名: {}, 手机号: {}", customer.getId(), customer.getName(), customer.getPhone());
-
-        // 4. 转换为VO并设置地址路径
-        return toVOWithAddressPath(customer);
-    }
-
-    /**
      * 修改客户
      *
      * @param id  客户ID
@@ -234,6 +202,8 @@ public class CustomerService {
         customer.setStatus(Status.ACTIVE);  // 默认启用
         
         customer = customerRepository.save(customer);
+        // 3. 保存客户快照（创建操作）
+        saveCustomerSnapshot(customer, OperationType.CREATE);
         log.info("创建客户成功: customerId={}, customerNo={}", customer.getId(), customerNo);
         
         return customer;
@@ -243,17 +213,16 @@ public class CustomerService {
      * 绑定客户到用户
      */
     @Transactional
-    public Customer bindCustomerToUser(Long customerId, Long userId) {
+    public void bindCustomerToUser(Long customerId, Long userId) {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
         
         customer.setUserId(userId);
         customer.setIsRegistered(RegisterStatus.REGISTERED);
-        customer = customerRepository.save(customer);
-        
+        customerRepository.save(customer);
+
         log.info("绑定客户成功: customerId={}, userId={}", customerId, userId);
-        
-        return customer;
+
     }
 
     /**

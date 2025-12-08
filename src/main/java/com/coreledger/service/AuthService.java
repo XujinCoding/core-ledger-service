@@ -97,9 +97,7 @@ public class AuthService {
 
         // 2. 获取数据
         SysUser user = sysUserRepository.findByWxOpenidAndStatus(dto.getOpenid(), Status.ACTIVE)
-                .orElseThrow(() -> {
-                    return new BusinessException(BusinessCode.USER_NOT_FOUND, "用户不存在，请先登录");
-                });
+                .orElseThrow(() -> new BusinessException(BusinessCode.USER_NOT_FOUND, "用户不存在，请先登录"));
 
         // 3. 处理
         user.setPhone(dto.getPhone());
@@ -355,7 +353,6 @@ public class AuthService {
         Optional<Customer> existingTemplate = customerService.findTemplateByUserId(
                 existingUserByPhone.map(SysUser::getId).orElse(null));
         if (existingTemplate.isPresent()) {
-            log.warn("用户已有模板客户: userId={}", existingUserByPhone.get().getId());
             throw new BusinessException(BusinessCode.CUSTOMER_ALREADY_REGISTERED);
         }
     }
