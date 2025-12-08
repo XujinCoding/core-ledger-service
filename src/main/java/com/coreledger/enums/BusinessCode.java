@@ -162,6 +162,9 @@ public enum BusinessCode {
     /** 手机号已被绑定 */
     PHONE_ALREADY_BOUND(5007, "该手机号已被其他账号绑定"),
 
+    /** 微信数据解密失败 */
+    WECHAT_DECRYPT_FAILED(5016, "微信数据解密失败"),
+
     /** 用户名已被使用 */
     USERNAME_ALREADY_USED(5009, "该用户名已被使用"),
 

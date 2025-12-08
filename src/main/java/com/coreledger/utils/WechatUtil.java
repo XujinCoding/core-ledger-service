@@ -66,18 +66,44 @@ public class WechatUtil {
     }
 
     /**
-     * 解密微信加密数据
+     * 解密微信加密数据（暂未使用，保留以供后续需要）
      * 用于解密手机号等敏感信息
+     * 使用 AES-128-CBC 算法解密
      *
-     * @param encryptedData 加密数据
-     * @param sessionKey    会话密钥
-     * @param iv            加密算法的初始向量
-     * @return 解密后的数据
+     * @param encryptedData 加密数据（Base64编码）
+     * @param sessionKey    会话密钥（Base64编码）
+     * @param iv            加密算法的初始向量（Base64编码）
+     * @return 解密后的 JSON 数据
+     * @throws BusinessException 解密失败时抛出异常
      */
+    /*
     public JSONObject decryptData(String encryptedData, String sessionKey, String iv) {
-        // TODO: 实现微信数据解密逻辑
-        // 使用 AES-128-CBC 解密算法
-        // 参考: https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/signature.html
-        throw new BusinessException(BusinessCode.NOT_IMPLEMENTED, "微信数据解密功能待实现");
+        try {
+            // 1. Base64 解码
+            byte[] encryptedBytes = Base64.decode(encryptedData);
+            byte[] sessionKeyBytes = Base64.decode(sessionKey);
+            byte[] ivBytes = Base64.decode(iv);
+
+            // 2. 创建 AES 密钥
+            SecretKeySpec keySpec = new SecretKeySpec(sessionKeyBytes, 0, sessionKeyBytes.length, "AES");
+            IvParameterSpec ivSpec = new IvParameterSpec(ivBytes);
+
+            // 3. 初始化 Cipher
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
+
+            // 4. 解密
+            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+            String decryptedData = new String(decryptedBytes, StandardCharsets.UTF_8);
+
+            log.debug("微信数据解密成功: {}", decryptedData);
+
+            // 5. 解析为 JSON
+            return JSONUtil.parseObj(decryptedData);
+        } catch (Exception e) {
+            log.error("微信数据解密失败", e);
+            throw new BusinessException(BusinessCode.WECHAT_DECRYPT_FAILED, "微信数据解密失败");
+        }
     }
+    */
 }

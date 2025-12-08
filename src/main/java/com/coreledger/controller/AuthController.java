@@ -117,8 +117,8 @@ public class AuthController {
      */
     @Operation(summary = "获取用户的所有身份", description = "获取当前用户拥有的所有身份（商户和客户）")
     @GetMapping("/identities")
-    public Result<UserIdentitiesVO> getUserIdentities(@RequestHeader("Authorization") String token) {
-        UserIdentitiesVO response = authService.getUserIdentities(token);
+    public Result<UserIdentitiesVO> getUserIdentities() {
+        UserIdentitiesVO response = authService.getUserIdentities();
         return Result.success(response);
     }
 }
