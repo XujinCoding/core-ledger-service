@@ -1,8 +1,8 @@
 package com.coreledger.vo.auth;
 
-import com.coreledger.entity.Customer;
 import com.coreledger.entity.Merchant;
 import com.coreledger.enums.IdentityType;
+import com.coreledger.vo.customer.CustomerVO;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -33,24 +33,6 @@ public class LoginVO {
     private UserInfoVO userInfo;
 
     /**
-     * 是否需要补充信息
-     */
-    @Schema(description = "是否需要补充信息", example = "false")
-    private Boolean needSupplement;
-
-    /**
-     * 是否为新用户（需要注册）
-     */
-    @Schema(description = "是否为新用户", example = "false")
-    private Boolean isNewUser;
-
-    /**
-     * 临时OpenID（需要补充信息或注册时返回）
-     */
-    @Schema(description = "临时OpenID", example = "oUpF8uMuAJO_M2pxb1Q9zNjWeS6o")
-    private String tempOpenid;
-
-    /**
      * Token过期时间
      */
     @Schema(description = "Token过期时间", example = "2025-12-01 12:00:00")
@@ -66,10 +48,10 @@ public class LoginVO {
     private Boolean needRegister;
 
     /**
-     * 需要注册的身份类型
+     * 当前的身份类型
      * MERCHANT_OWNER 或 CUSTOMER
      */
-    @Schema(description = "需要注册的身份类型", example = "MERCHANT_OWNER")
+    @Schema(description = "当前的身份类型", example = "MERCHANT_OWNER")
     private IdentityType registerType;
 
     /**
@@ -82,19 +64,7 @@ public class LoginVO {
      * 客户列表（多个客户时返回）
      */
     @Schema(description = "客户列表")
-    private List<Customer> customers;
-
-    /**
-     * 已选中的商户ID
-     */
-    @Schema(description = "已选中的商户ID", example = "100")
-    private Long selectedMerchantId;
-
-    /**
-     * 已选中的客户ID
-     */
-    @Schema(description = "已选中的客户ID", example = "200")
-    private Long selectedCustomerId;
+    private List<CustomerVO> customers;
 
     /**
      * 提示信息
@@ -109,31 +79,7 @@ public class LoginVO {
         LoginVO vo = new LoginVO();
         vo.setToken(token);
         vo.setUserInfo(userInfo);
-        vo.setNeedSupplement(false);
-        vo.setIsNewUser(false);
         vo.setExpireTime(expireTime);
-        return vo;
-    }
-
-    /**
-     * 创建需要补充信息的响应（已存在用户）
-     */
-    public static LoginVO needSupplement(String tempOpenid) {
-        LoginVO vo = new LoginVO();
-        vo.setNeedSupplement(true);
-        vo.setIsNewUser(false);
-        vo.setTempOpenid(tempOpenid);
-        return vo;
-    }
-
-    /**
-     * 创建需要注册的响应（新用户）
-     */
-    public static LoginVO needRegister(String tempOpenid) {
-        LoginVO vo = new LoginVO();
-        vo.setNeedSupplement(true);
-        vo.setIsNewUser(true);
-        vo.setTempOpenid(tempOpenid);
         return vo;
     }
 }

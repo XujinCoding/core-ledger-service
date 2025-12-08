@@ -56,6 +56,7 @@ public class AuthService {
     private final CustomerService customerService;
     private final RedisTemplate<String, Long> redisTemplate;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private static final String LAST_CUSTOMER="last_customer_";
 
     /**
      * 微信小程序登录
@@ -140,6 +141,7 @@ public class AuthService {
             LoginVO response = new LoginVO();
             response.setUserInfo(buildBaseUserInfo(user));
             response.setMerchants(merchants);
+            response.setRegisterType(IdentityType.MERCHANT_OWNER);
             response.setMessage("请选择商户");
             log.info("商户登录返回列表: userId={}, merchantCount={}", user.getId(), merchants.size());
             return response;
@@ -181,7 +183,8 @@ public class AuthService {
                 // 没有上次记录或记录无效：返回列表让用户选择
                 LoginVO response = new LoginVO();
                 response.setUserInfo(buildBaseUserInfo(user));
-                response.setCustomers(customers);
+                response.setCustomers(customerService.toVOListWithMerchantName(customers));
+                response.setRegisterType(IdentityType.CUSTOMER);
                 response.setMessage("请选择客户");
                 log.info("客户登录返回列表: userId={}, customerCount={}", user.getId(), customers.size());
                 return response;
@@ -194,12 +197,22 @@ public class AuthService {
      * 从 Redis 中获取，key 格式: last_customer_{userId}
      */
     private Long getLastSelectedCustomerId(Long userId) {
-        String redisKey = "last_customer_" + userId;
+        String redisKey = LAST_CUSTOMER + userId;
         Long customerId = redisTemplate.opsForValue().get(redisKey);
         if (customerId != null) {
             log.info("从 Redis 获取上次选中的客户: userId={}, customerId={}", userId, customerId);
         }
         return customerId;
+    }
+
+
+    /**
+     * 获取用户上次选中的客户 ID
+     * 从 Redis 中获取，key 格式: last_customer_{userId}
+     */
+    private void setLastSelectedCustomerId(Long userId, Long customerId) {
+        String redisKey = LAST_CUSTOMER + userId;
+        redisTemplate.opsForValue().set(redisKey, customerId, 30, TimeUnit.DAYS);
     }
 
     /**
@@ -486,8 +499,7 @@ public class AuthService {
     @Transactional(rollbackFor = Exception.class)
     public LoginVO switchIdentity(SwitchIdentityDTO dto) {
         // 1. 从 Token 获取当前用户
-        UserInfoVO userInfo = getCurrentUser(dto.getToken());
-        SysUser user = sysUserRepository.findById(userInfo.getId())
+        SysUser user = sysUserRepository.findById(AppSessionContext.getUserId())
                 .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
 
         // 2. 根据身份类型验证权限
@@ -519,9 +531,8 @@ public class AuthService {
             }
 
             // 记录上次选中的客户 ID 到 Redis
-            String redisKey = "last_customer_" + user.getId();
-            redisTemplate.opsForValue().set(redisKey, dto.getCustomerId(), 30, TimeUnit.DAYS);
-            log.info("记录上次选中的客户: userId={}, customerId={}, redisKey={}", user.getId(), dto.getCustomerId(), redisKey);
+            setLastSelectedCustomerId(user.getId(), dto.getCustomerId());
+            log.info("记录上次选中的客户: userId={}, customerId={}", user.getId(), dto.getCustomerId());
 
             log.info("切换到客户身份: userId={}, customerId={}, merchantId={}", user.getId(), dto.getCustomerId(), customer.getMerchantId());
             return generateLoginResponse(user, customer.getMerchantId(), dto.getCustomerId());
@@ -557,7 +568,8 @@ public class AuthService {
         } else if (userInfo.getIdentityType() == IdentityType.CUSTOMER) {
             // 客户登录：返回该用户是客户的所有关系
             List<Customer> customers = customerService.findFormalByUserId(user.getId());
-            response.setCustomers(customers);
+            response.setCustomers(customerService.toVOListWithMerchantName(customers));
+
             log.info("获取客户身份列表: userId={}, customerCount={}", user.getId(), customers.size());
 
         } else {

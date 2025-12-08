@@ -7,12 +7,14 @@ import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.CustomerHistory;
+import com.coreledger.entity.Merchant;
 import com.coreledger.entity.SysAddress;
 import com.coreledger.enums.*;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.repository.CustomerHistoryRepository;
 import com.coreledger.repository.CustomerRepository;
+import com.coreledger.repository.MerchantRepository;
 import com.coreledger.repository.SysAddressRepository;
 import com.coreledger.utils.specification.PredicateBuilder;
 import com.coreledger.vo.customer.CustomerVO;
@@ -26,11 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 客户业务服务类
@@ -47,6 +46,7 @@ public class CustomerService {
     private final CustomerRepository customerRepository;
     private final SysAddressRepository addressRepository;
     private final CustomerHistoryRepository historyRepository;
+    private final MerchantRepository merchantRepository;
     private final CustomerConverter customerConverter;
     private final AddressService addressService;
 
@@ -353,6 +353,30 @@ public class CustomerService {
                 formalCustomer.getId(), templateCustomer.getId(), merchantId);
 
         return formalCustomer;
+    }
+
+    /**
+     * 将客户列表转换为 CustomerVO 列表
+     * 只填充地址路径，商户信息由 Controller 层批量填充
+     *
+     * @param customers 客户实体列表
+     * @return 客户VO列表
+     */
+    public List<CustomerVO> toVOListWithMerchantName(List<Customer> customers) {
+        // 1. 批量查询地址信息
+        Set<Long> merchantIds = customers.stream()
+                .map(Customer::getMerchantId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, String> merchantMap = merchantRepository.findAllById(merchantIds)
+                .stream().collect(Collectors.toMap(Merchant::getId, Merchant::getMerchantName, (a, b) -> a));
+        // 2. 转换为 VO 填充商户名称
+        return customers.stream().map(customer -> {
+            CustomerVO vo = customerConverter.toVO(customer);
+            vo.setMerchantName(merchantMap.get(vo.getMerchantId()));
+            return vo;
+        }).toList();
     }
 
     /**

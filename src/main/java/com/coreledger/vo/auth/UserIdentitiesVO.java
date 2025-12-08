@@ -1,7 +1,7 @@
 package com.coreledger.vo.auth;
 
-import com.coreledger.entity.Customer;
 import com.coreledger.entity.Merchant;
+import com.coreledger.vo.customer.CustomerVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -33,5 +33,5 @@ public class UserIdentitiesVO {
      * 用户是客户的商户列表
      */
     @Schema(description = "用户是客户的商户列表")
-    private List<Customer> customers;
+    private List<CustomerVO> customers;
 }

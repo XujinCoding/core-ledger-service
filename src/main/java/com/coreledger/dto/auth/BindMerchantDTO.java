@@ -20,11 +20,4 @@ public class BindMerchantDTO {
     @NotBlank(message = "邀请码不能为空")
     @Schema(description = "商户邀请码", example = "ABC123")
     private String inviteCode;
-
-    /**
-     * 用户Token
-     */
-    @NotBlank(message = "Token不能为空")
-    @Schema(description = "用户Token", example = "eyJhbGc...")
-    private String token;
 }

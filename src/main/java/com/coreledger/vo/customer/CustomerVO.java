@@ -100,4 +100,22 @@ public class CustomerVO {
      */
     @Schema(description = "修改时间")
     private LocalDateTime modifyInstant;
+
+    /**
+     * 商户ID
+     */
+    @Schema(description = "商户ID")
+    private Long merchantId;
+
+    /**
+     * 商户名称
+     */
+    @Schema(description = "商户名称")
+    private String merchantName;
+
+    /**
+     * 商户编号
+     */
+    @Schema(description = "商户编号")
+    private String merchantNo;
 }

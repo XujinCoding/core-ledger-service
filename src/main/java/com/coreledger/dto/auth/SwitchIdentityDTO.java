@@ -33,11 +33,4 @@ public class SwitchIdentityDTO {
      */
     @Schema(description = "客户ID", example = "1")
     private Long customerId;
-
-    /**
-     * 用户Token
-     */
-    @NotNull(message = "Token不能为空")
-    @Schema(description = "用户Token", example = "eyJhbGc...")
-    private String token;
 }
