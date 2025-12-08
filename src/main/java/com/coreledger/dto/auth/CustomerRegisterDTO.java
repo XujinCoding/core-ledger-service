@@ -80,4 +80,10 @@ public class CustomerRegisterDTO {
      */
     @Schema(description = "详细地址", example = "北京市朝阳区某某街道")
     private String addressDetail;
+
+    /**
+     * 商户邀请码
+     */
+    @Schema(description = "商户邀请码", example = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+    private String inviteCode;
 }

@@ -67,6 +67,14 @@ public class LoginVO {
     private List<CustomerVO> customers;
 
     /**
+     * 是否需要注册身份
+     * true: 用户没有对应身份，需要调用注册接口
+     * false: 已有身份信息或身份列表
+     */
+    @Schema(description = "是否是潜在用户", example = "false")
+    private Boolean potentialCustomer = false;
+
+    /**
      * 提示信息
      */
     @Schema(description = "提示信息", example = "请选择商户")

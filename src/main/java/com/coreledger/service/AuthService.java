@@ -19,6 +19,7 @@ import com.coreledger.vo.auth.UserIdentitiesVO;
 import com.coreledger.vo.auth.UserInfoVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -63,7 +64,7 @@ public class AuthService {
 
         // 2. 获取数据
         SysUser user = sysUserRepository.findByWxOpenidAndStatus(openid, Status.ACTIVE)
-                .orElseGet(() -> createNewUser(openid));
+                .orElseGet(() -> getOrCreateUser(openid));
 
         // 3. 处理
         if (dto.getIdentityType() == IdentityType.MERCHANT_OWNER) {
@@ -96,10 +97,8 @@ public class AuthService {
         validateMerchantRegister(dto);
 
         // 2. 获取数据
-        SysUser user = sysUserRepository.findByWxOpenidAndStatus(dto.getOpenid(), Status.ACTIVE)
-                .orElseThrow(() -> new BusinessException(BusinessCode.USER_NOT_FOUND, "用户不存在，请先登录"));
-
-        // 3. 处理
+        String openid = dto.getOpenid();
+        SysUser user = getOrCreateUser(openid);
         user.setPhone(dto.getPhone());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
@@ -110,7 +109,7 @@ public class AuthService {
         Merchant merchant = merchantService.createMerchant(dto.getMerchantName(), user.getId());
         log.info("商户注册成功: userId={}, merchantId={}, phone={}", user.getId(), merchant.getId(), dto.getPhone());
 
-        // 4. 返回
+        // 3. 返回
         return generateLoginResponse(user, merchant.getId(), null);
     }
 
@@ -123,29 +122,31 @@ public class AuthService {
         validateCustomerRegister(dto);
 
         // 2. 获取数据
-        SysUser user = sysUserRepository.findByWxOpenidAndStatus(dto.getOpenid(), Status.ACTIVE)
-                .orElseThrow(() -> {
-                    log.error("客户注册失败: 用户不存在, openid={}", dto.getOpenid());
-                    return new BusinessException(BusinessCode.USER_NOT_FOUND, "用户不存在，请先登录");
-                });
-
-        // 3. 处理
+        SysUser user = getOrCreateUser(dto.getOpenid());
         user.setPhone(dto.getPhone());
         user.setUsername(dto.getPhone());
         user.setWxNickname(dto.getNickname());
         user.setWxAvatarUrl(dto.getAvatarUrl());
         sysUserRepository.save(user);
-
         Customer templateCustomer = customerService.createTemplateCustomer(dto, user.getId());
+
+        if (Objects.nonNull(dto.getInviteCode())) {
+            Merchant merchant = merchantService.findByInviteCode(dto.getInviteCode())
+                    .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
+            Customer customer = customerService.createFormalCustomerFromTemplate(templateCustomer, merchant.getId());
+            return generateLoginResponse(user, merchant.getId(), customer.getId());
+
+        }
 
         log.info("客户注册成功（创建模板客户）: userId={}, templateCustomerId={}, phone={}",
                 user.getId(), templateCustomer.getId(), dto.getPhone());
 
-        // 4. 返回
+        // 3. 返回
         LoginVO response = new LoginVO();
         response.setUserInfo(buildBaseUserInfo(user));
         response.setMessage("客户信息已保存，请选择商户进行绑定");
         return response;
+
     }
 
     /**
@@ -359,19 +360,18 @@ public class AuthService {
 
     // ==================== 处理方法 ====================
 
-    /**
-     * 创建新用户
-     */
-    private SysUser createNewUser(String openid) {
-        SysUser user = new SysUser();
-        user.setWxOpenid(openid);
-        user.setRole(UserRole.USER);
-        user.setStatus(Status.ACTIVE);
-        user = sysUserRepository.save(user);
-        log.info("创建新用户成功: userId={}, openid={}", user.getId(), openid);
-        return user;
+    private @NotNull SysUser getOrCreateUser(String openid) {
+        // 创建新用户
+        return sysUserRepository.findByWxOpenidAndStatus(openid, Status.ACTIVE)
+                .orElseGet(() -> {
+                    // 创建新用户
+                    SysUser newUser = new SysUser();
+                    newUser.setWxOpenid(openid);
+                    newUser.setRole(UserRole.USER);
+                    newUser.setStatus(Status.ACTIVE);
+                    return sysUserRepository.save(newUser);
+                });
     }
-
     /**
      * 处理商户登录
      */
@@ -408,6 +408,12 @@ public class AuthService {
         List<Customer> customers = customerService.findFormalByUserId(user.getId());
 
         if (customers.isEmpty()) {
+            // 没有正式客户, 看是否有模板库客户, 可以下发授权, 但是没有商户, 只能修改客户基本信息,不能进行任何其他操作
+            Optional<Customer> templateByUserId = customerService.findTemplateByUserId(user.getId());
+            if (templateByUserId.isPresent()){
+                return generateLoginResponse(user, null, templateByUserId.get().getId());
+            }
+            //没有模板客户, 第一次使用系统, 需要走注册流程
             log.info("客户登录需要注册: userId={}", user.getId());
             LoginVO response = new LoginVO();
             response.setUserInfo(buildBaseUserInfo(user));
@@ -496,11 +502,16 @@ public class AuthService {
 
         if (merchantId != null && customerId == null) {
             userInfo.setIdentityType(IdentityType.MERCHANT_OWNER);
-        } else if (customerId != null) {
+        } else if (merchantId != null) {
             userInfo.setIdentityType(IdentityType.CUSTOMER);
         }
 
         String token = tokenUtil.generateToken(userInfo);
-        return LoginVO.success(token, userInfo, tokenUtil.getExpireTime());
+        LoginVO success = LoginVO.success(token, userInfo, tokenUtil.getExpireTime());
+        if (merchantId == null&& customerId != null) {
+            //如果没有商户有客户的话, 说明客户是模板客户, 提示用户绑定商户
+            success.setPotentialCustomer(true);
+        }
+        return success;
     }
 }
