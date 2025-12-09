@@ -18,12 +18,11 @@ import lombok.Data;
 public class CustomerRegisterDTO {
 
     /**
-     * 微信OpenID
+     * 微信Code
      */
-    @NotBlank(message = "微信OpenID不能为空")
-    @Schema(description = "微信OpenID", example = "oXXXXXXXXXXXXXXXXXXXXXXXXXX")
-    private String openid;
-
+    @NotBlank(message = "微信登录凭证不能为空")
+    @Schema(description = "微信登录凭证code", required = true, example = "071Ab2Ga1n8YYJ0MJVIa1Ht9Ga1Ab2G5")
+    private String code;
     /**
      * 手机号
      */

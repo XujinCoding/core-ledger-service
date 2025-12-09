@@ -2,14 +2,13 @@ package com.coreledger.utils;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
-import com.coreledger.vo.auth.UserInfoVO;
+import com.coreledger.vo.auth.CurrentUserIdentityInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -42,7 +41,7 @@ public class TokenUtil {
      * @param userInfo 用户信息
      * @return Token 字符串
      */
-    public String generateToken(UserInfoVO userInfo) {
+    public String generateToken(CurrentUserIdentityInfo userInfo) {
         // 生成唯一 Token
         String token = IdUtil.simpleUUID();
 
@@ -50,7 +49,7 @@ public class TokenUtil {
         String key = TOKEN_PREFIX + token;
         redisTemplate.opsForValue().set(key, userInfo, TOKEN_EXPIRE_DAYS, TimeUnit.DAYS);
 
-        log.info("生成Token成功: userId={}, token={}", userInfo.getId(), token);
+        log.info("生成Token成功: userId={}, token={}", userInfo.getUserId(), token);
         return token;
     }
 
@@ -60,7 +59,7 @@ public class TokenUtil {
      * @param token Token 字符串
      * @return 用户信息，Token 无效时返回 null
      */
-    public UserInfoVO getUserInfo(String token) {
+    public CurrentUserIdentityInfo getCurrentUserIdentityInfo(String token) {
         if (StrUtil.isBlank(token)) {
             return null;
         }
@@ -68,10 +67,10 @@ public class TokenUtil {
         String key = TOKEN_PREFIX + token;
         Object obj = redisTemplate.opsForValue().get(key);
 
-        if (obj instanceof UserInfoVO) {
+        if (obj instanceof CurrentUserIdentityInfo) {
             // 刷新过期时间
             redisTemplate.expire(key, TOKEN_EXPIRE_DAYS, TimeUnit.DAYS);
-            return (UserInfoVO) obj;
+            return (CurrentUserIdentityInfo) obj;
         }
 
         return null;
@@ -108,6 +107,6 @@ public class TokenUtil {
      * @return true=有效, false=无效
      */
     public boolean isValid(String token) {
-        return getUserInfo(token) != null;
+        return getCurrentUserIdentityInfo(token) != null;
     }
 }

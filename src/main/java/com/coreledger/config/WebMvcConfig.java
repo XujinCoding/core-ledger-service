@@ -1,7 +1,6 @@
 package com.coreledger.config;
 
-import com.coreledger.config.interceptor.AuthenticationInterceptor;
-import com.coreledger.interceptor.AuthInterceptor;
+import com.coreledger.interceptor.AuthenticationInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -17,7 +16,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    private final AuthInterceptor authInterceptor;
     private final AuthenticationInterceptor authenticationInterceptor;
 
     @Override
@@ -27,19 +25,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**")  // 拦截所有 API 请求
                 .excludePathPatterns(
                         "/api/auth/wechat-login",    // 排除微信登录
+                        "/api/auth/merchant/wechat/register",    // 排除商户注册
+                        "/api/auth/customer/wechat/register",    // 排除客户注册
                         "/api/auth/register",        // 排除注册
                         "/api/auth/login",           // 排除登录
                         "/api/doc.html",             // 排除 Knife4j 文档
-                        "/api/swagger-ui/**",
-                        "/api/v3/api-docs/**"
-                );
-
-        // 原有的认证拦截器
-        registry.addInterceptor(authInterceptor)
-                .addPathPatterns("/api/**")  // 拦截所有 API 请求
-                .excludePathPatterns(
-                        "/api/auth/**",      // 排除认证接口
-                        "/api/doc.html",     // 排除 Knife4j 文档
                         "/api/swagger-ui/**",
                         "/api/v3/api-docs/**"
                 );

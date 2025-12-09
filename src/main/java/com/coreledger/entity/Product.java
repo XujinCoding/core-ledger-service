@@ -23,7 +23,6 @@ import java.util.List;
 @ToString(callSuper = true)
 @Entity
 @Table(name = "product")
-@FilterDef(name = "merchantFilter", parameters = @ParamDef(name = "merchantId", type = Long.class))
 @Filter(name = "merchantFilter", condition = "merchant_id = :merchantId")
 public class Product extends BaseEntity {
 

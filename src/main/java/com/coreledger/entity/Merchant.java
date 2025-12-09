@@ -21,12 +21,12 @@ import lombok.ToString;
 public class Merchant extends BaseEntity {
 
     /** 商户编号，格式：M_yyyyMMddHHmmss_随机3位 */
-    @Column(name = "merchant_no", nullable = false, length = 32, unique = true)
-    private String merchantNo;
+    @Column(name = "code", nullable = false, length = 32, unique = true)
+    private String code;
 
     /** 商户名称 */
-    @Column(name = "merchant_name", nullable = false, length = 100)
-    private String merchantName;
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
 
     /** 商户所有者User ID */
     @Column(name = "owner_user_id", nullable = false)
@@ -39,4 +39,16 @@ public class Merchant extends BaseEntity {
     /** 二维码URL */
     @Column(name = "qr_code_url", length = 500)
     private String qrCodeUrl;
+
+    /** 手机号 */
+    @Column(name = "phone", nullable = false, length = 20)
+    private String phone;
+
+    /** 关联地址ID */
+    @Column(name = "address_id", nullable = false)
+    private Long addressId;
+
+    /** 详细地址 */
+    @Column(name = "address_detail", length = 255)
+    private String addressDetail;
 }

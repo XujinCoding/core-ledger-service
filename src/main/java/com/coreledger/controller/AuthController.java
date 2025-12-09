@@ -5,13 +5,12 @@ import com.coreledger.dto.auth.BindMerchantDTO;
 import com.coreledger.dto.auth.CustomerRegisterDTO;
 import com.coreledger.dto.auth.MerchantRegisterDTO;
 import com.coreledger.dto.auth.PasswordLoginDTO;
-import com.coreledger.dto.auth.SupplementUserInfoDTO;
 import com.coreledger.dto.auth.SwitchIdentityDTO;
 import com.coreledger.dto.auth.WechatLoginDTO;
 import com.coreledger.service.AuthService;
 import com.coreledger.vo.auth.LoginVO;
 import com.coreledger.vo.auth.UserIdentitiesVO;
-import com.coreledger.vo.auth.UserInfoVO;
+import com.coreledger.vo.auth.CurrentUserIdentityInfo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -67,8 +66,8 @@ public class AuthController {
      */
     @Operation(summary = "获取当前用户信息", description = "根据Token获取当前登录用户信息")
     @GetMapping("/current-user")
-    public Result<UserInfoVO> getCurrentUser(@RequestHeader("Authorization") String token) {
-        UserInfoVO userInfo = authService.getCurrentUser(token);
+    public Result<CurrentUserIdentityInfo> getCurrentUser() {
+        CurrentUserIdentityInfo userInfo = authService.getCurrentUser();
         return Result.success(userInfo);
     }
 

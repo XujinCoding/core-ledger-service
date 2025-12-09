@@ -30,7 +30,7 @@ public class LoginVO {
      * 用户信息
      */
     @Schema(description = "用户信息")
-    private UserInfoVO userInfo;
+    private CurrentUserIdentityInfo userInfo;
 
     /**
      * Token过期时间
@@ -67,14 +67,6 @@ public class LoginVO {
     private List<CustomerVO> customers;
 
     /**
-     * 是否需要注册身份
-     * true: 用户没有对应身份，需要调用注册接口
-     * false: 已有身份信息或身份列表
-     */
-    @Schema(description = "是否是潜在用户", example = "false")
-    private Boolean potentialCustomer = false;
-
-    /**
      * 提示信息
      */
     @Schema(description = "提示信息", example = "请选择商户")
@@ -83,7 +75,7 @@ public class LoginVO {
     /**
      * 创建成功响应（登录成功）
      */
-    public static LoginVO success(String token, UserInfoVO userInfo, LocalDateTime expireTime) {
+    public static LoginVO success(String token, CurrentUserIdentityInfo userInfo, LocalDateTime expireTime) {
         LoginVO vo = new LoginVO();
         vo.setToken(token);
         vo.setUserInfo(userInfo);

@@ -12,18 +12,13 @@ CREATE TABLE `sys_user` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
     `username` VARCHAR(50) DEFAULT NULL COMMENT '用户名（可选，管理员必填）',
     `password` VARCHAR(100) DEFAULT NULL COMMENT '密码(BCrypt加密，管理员必填)',
-    `phone` VARCHAR(20) NOT NULL COMMENT '手机号',
-    `role` TINYINT NOT NULL DEFAULT 0 COMMENT '角色: 0=普通用户, 1=管理员',
     `wx_openid` VARCHAR(100) DEFAULT NULL COMMENT '微信OpenID（唯一标识）',
-    `wx_nickname` VARCHAR(100) DEFAULT NULL COMMENT '微信昵称',
-    `wx_avatar_url` VARCHAR(500) DEFAULT NULL COMMENT '微信头像URL',
     `memo` VARCHAR(255) DEFAULT NULL COMMENT '备注',
     `status` INT NOT NULL DEFAULT 1 COMMENT '状态: 1=启用, 0=禁用',
     `create_instant` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `modify_instant` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
     `version` INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
      PRIMARY KEY (`id`),
-     UNIQUE KEY `uk_phone` (`phone`),
      UNIQUE KEY `uk_username` (`username`),
      UNIQUE KEY `uk_wx_openid` (`wx_openid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统用户表' AUTO_INCREMENT = 10000;
@@ -52,8 +47,11 @@ CREATE TABLE `sys_address` (
 -- =====================================================
 CREATE TABLE `merchant` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-    `merchant_no` VARCHAR(32) NOT NULL COMMENT '商户编号，格式：M_yyyyMMddHHmmss_随机3位',
-    `merchant_name` VARCHAR(100) NOT NULL COMMENT '商户名称',
+    `code` VARCHAR(32) NOT NULL COMMENT '商户编号，格式：M_yyyyMMddHHmmss_随机3位',
+    `name` VARCHAR(100) NOT NULL COMMENT '商户名称',
+    `phone` VARCHAR(20) NOT NULL COMMENT '手机号',
+    `address_id` BIGINT NOT NULL COMMENT '关联地址ID (sys_address.id)',
+    `address_detail` VARCHAR(255) DEFAULT NULL COMMENT '详细地址 (门牌号等)',
     `owner_user_id` BIGINT NOT NULL COMMENT '商户所有者User ID',
     `invite_code` VARCHAR(20) NOT NULL COMMENT '邀请码，用于生成二维码',
     `qr_code_url` VARCHAR(500) DEFAULT NULL COMMENT '二维码URL',
@@ -63,7 +61,7 @@ CREATE TABLE `merchant` (
     `modify_instant` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
     `version` INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
      PRIMARY KEY (`id`),
-     UNIQUE KEY `uk_merchant_no` (`merchant_no`),
+     UNIQUE KEY `uk_code` (`code`),
      UNIQUE KEY `uk_invite_code` (`invite_code`),
      KEY `idx_owner_user_id` (`owner_user_id`),
      CONSTRAINT `fk_merchant_owner_user_id` FOREIGN KEY (`owner_user_id`) REFERENCES `sys_user` (`id`)
@@ -74,9 +72,9 @@ CREATE TABLE `merchant` (
 -- =====================================================
 CREATE TABLE `customer` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-    `customer_no` VARCHAR(32) NOT NULL COMMENT '客户编号，格式：C_yyyyMMddHHmmss_随机3位',
+    `code` VARCHAR(32) NOT NULL COMMENT '客户编号，格式：C_yyyyMMddHHmmss_随机3位',
     `user_id` BIGINT DEFAULT NULL COMMENT '关联的User ID，允许为空（商户手动创建时）',
-    `merchant_id` BIGINT NOT NULL COMMENT '所属商户ID',
+    `merchant_id` BIGINT DEFAULT NULL COMMENT '所属商户ID',
     `is_registered` TINYINT NOT NULL DEFAULT 0 COMMENT '是否已注册: 0=未注册, 1=已注册',
     `name` VARCHAR(50) NOT NULL COMMENT '客户姓名',
     `phone` VARCHAR(20) NOT NULL COMMENT '手机号',
@@ -93,7 +91,7 @@ CREATE TABLE `customer` (
     `version` INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
      PRIMARY KEY (`id`),
      UNIQUE KEY `uk_user_merchant` (`user_id`, `merchant_id`),
-     UNIQUE KEY `uk_customer_no_merchant` (`customer_no`, `merchant_id`),
+     UNIQUE KEY `uk_code_merchant` (`code`, `merchant_id`),
      KEY `idx_name` (`name`),
      KEY `idx_address_id` (`address_id`),
      KEY `idx_customer_type` (`customer_type`),
@@ -126,7 +124,6 @@ CREATE TABLE `customer_history` (
     `operation_type` TINYINT NOT NULL COMMENT '操作类型: 1=创建, 2=更新, 3=删除',
     `operation_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
     `operator_id` BIGINT DEFAULT NULL COMMENT '操作人ID',
-    `operator_name` VARCHAR(50) DEFAULT NULL COMMENT '操作人姓名',
      PRIMARY KEY (`history_id`),
      KEY `idx_customer_id` (`customer_id`),
      KEY `idx_operation_type` (`operation_type`),
@@ -334,8 +331,8 @@ CREATE TABLE `payment_record` (
 -- 密码: admin123 (BCrypt加密)
 -- 角色: 1 (管理员)
 -- =====================================================
-INSERT INTO `sys_user` (`username`, `password`, `phone`, `role`, `memo`)
-VALUES ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '13800138000', 1, '系统默认管理员');
+INSERT INTO `sys_user` (`username`, `password`, `memo`)
+VALUES ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '系统默认管理员');
 
 -- =====================================================
 -- 脚本执行完成

@@ -113,10 +113,6 @@ public class CustomerHistory {
     @Column(name = "operator_id")
     private Long operatorId;
 
-    /** 操作人姓名 */
-    @Column(name = "operator_name", length = 50)
-    private String operatorName;
-
     /**
      * 从 Customer 实体创建历史快照
      *
@@ -138,9 +134,7 @@ public class CustomerHistory {
         history.setStatus(1); // 默认状态为启用
         history.setOperationType(operationType);
         history.setOperationTime(customer.getModifyInstant());
-        AppSessionContext.getUsername();
-         history.setOperatorId(AppSessionContext.getUserId());
-         history.setOperatorName(AppSessionContext.getUsername());
+        history.setOperatorId(AppSessionContext.getUserId());
         return history;
     }
 }

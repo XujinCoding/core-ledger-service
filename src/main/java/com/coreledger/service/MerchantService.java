@@ -40,8 +40,8 @@ public class MerchantService {
         
         // 3. 创建商户
         Merchant merchant = new Merchant();
-        merchant.setMerchantNo(merchantNo);
-        merchant.setMerchantName(merchantName);
+        merchant.setCode(merchantNo);
+        merchant.setName(merchantName);
         merchant.setOwnerUserId(ownerUserId);
         merchant.setInviteCode(inviteCode);
         merchant.setStatus(Status.ACTIVE);  // 默认启用
@@ -70,7 +70,7 @@ public class MerchantService {
      * 查询用户的所有商户
      */
     public List<Merchant> findByOwnerUserId(Long ownerUserId) {
-        return merchantRepository.findByOwnerUserIdAndStatus(ownerUserId, 1);
+        return merchantRepository.findByOwnerUserIdAndStatus(ownerUserId, Status.ACTIVE);
     }
 
     /**

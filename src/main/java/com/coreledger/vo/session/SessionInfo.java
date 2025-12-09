@@ -27,24 +27,9 @@ public class SessionInfo {
     private Long userId;
 
     /**
-     * 用户名
-     */
-    private String username;
-
-    /**
      * 商户ID
      */
     private Long merchantId;
-
-    /**
-     * 商户名称
-     */
-    private String merchantName;
-
-    /**
-     * 商户编号
-     */
-    private String merchantNo;
 
     /**
      * 客户ID
@@ -52,19 +37,9 @@ public class SessionInfo {
     private Long customerId;
 
     /**
-     * 客户名称
+     * token
      */
-    private String customerName;
-
-    /**
-     * 客户编号
-     */
-    private String customerNo;
-
-    /**
-     * 客户手机号
-     */
-    private String customerPhone;
+    private String token;
 
     /**
      * 当前身份类型
@@ -76,15 +51,10 @@ public class SessionInfo {
     public String toString() {
         return "SessionInfo{" +
                 "userId=" + userId +
-                ", username='" + username + '\'' +
                 ", merchantId=" + merchantId +
-                ", merchantName='" + merchantName + '\'' +
-                ", merchantNo='" + merchantNo + '\'' +
                 ", customerId=" + customerId +
-                ", customerName='" + customerName + '\'' +
-                ", customerNo='" + customerNo + '\'' +
-                ", customerPhone='" + customerPhone + '\'' +
-                ", identityType='" + identityType + '\'' +
+                ", token='" + token + '\'' +
+                ", identityType=" + identityType +
                 '}';
     }
 }

@@ -46,20 +46,21 @@ public class AppSessionContext {
     }
 
     /**
-     * 设置用户名
+     * 设置用户ID
      */
-    public static void setUsername(String username) {
+    public static void setToken(String token) {
         SessionInfo info = getOrCreateSessionInfo();
-        info.setUsername(username);
+        info.setToken(token);
     }
 
     /**
-     * 获取用户名
+     * 获取用户ID
      */
-    public static String getUsername() {
+    public static String getToken() {
         SessionInfo info = SESSION_INFO.get();
-        return info != null ? info.getUsername() : null;
+        return info != null ? info.getToken() : null;
     }
+
 
     /**
      * 设置商户ID
@@ -78,38 +79,6 @@ public class AppSessionContext {
     }
 
     /**
-     * 设置商户名称
-     */
-    public static void setMerchantName(String merchantName) {
-        SessionInfo info = getOrCreateSessionInfo();
-        info.setMerchantName(merchantName);
-    }
-
-    /**
-     * 获取商户名称
-     */
-    public static String getMerchantName() {
-        SessionInfo info = SESSION_INFO.get();
-        return info != null ? info.getMerchantName() : null;
-    }
-
-    /**
-     * 设置商户编号
-     */
-    public static void setMerchantNo(String merchantNo) {
-        SessionInfo info = getOrCreateSessionInfo();
-        info.setMerchantNo(merchantNo);
-    }
-
-    /**
-     * 获取商户编号
-     */
-    public static String getMerchantNo() {
-        SessionInfo info = SESSION_INFO.get();
-        return info != null ? info.getMerchantNo() : null;
-    }
-
-    /**
      * 设置客户ID
      */
     public static void setCustomerId(Long customerId) {
@@ -123,54 +92,6 @@ public class AppSessionContext {
     public static Long getCustomerId() {
         SessionInfo info = SESSION_INFO.get();
         return info != null ? info.getCustomerId() : null;
-    }
-
-    /**
-     * 设置客户名称
-     */
-    public static void setCustomerName(String customerName) {
-        SessionInfo info = getOrCreateSessionInfo();
-        info.setCustomerName(customerName);
-    }
-
-    /**
-     * 获取客户名称
-     */
-    public static String getCustomerName() {
-        SessionInfo info = SESSION_INFO.get();
-        return info != null ? info.getCustomerName() : null;
-    }
-
-    /**
-     * 设置客户编号
-     */
-    public static void setCustomerNo(String customerNo) {
-        SessionInfo info = getOrCreateSessionInfo();
-        info.setCustomerNo(customerNo);
-    }
-
-    /**
-     * 获取客户编号
-     */
-    public static String getCustomerNo() {
-        SessionInfo info = SESSION_INFO.get();
-        return info != null ? info.getCustomerNo() : null;
-    }
-
-    /**
-     * 设置客户手机号
-     */
-    public static void setCustomerPhone(String customerPhone) {
-        SessionInfo info = getOrCreateSessionInfo();
-        info.setCustomerPhone(customerPhone);
-    }
-
-    /**
-     * 获取客户手机号
-     */
-    public static String getCustomerPhone() {
-        SessionInfo info = SESSION_INFO.get();
-        return info != null ? info.getCustomerPhone() : null;
     }
 
     /**

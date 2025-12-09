@@ -53,6 +53,9 @@ public enum BusinessCode {
     /** 客户已被删除 */
     CUSTOMER_DELETED(1003, "客户已被删除"),
 
+    /** 客户已被删除 */
+    CUSTOMER_BIND_EXISTS(1004, "已绑定该商户"),
+
     // ==================== 账本模块 (2000-2999) ====================
     /** 账本不存在 */
     LEDGER_NOT_FOUND(2001, "账本不存在"),

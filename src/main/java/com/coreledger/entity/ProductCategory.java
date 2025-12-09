@@ -19,7 +19,6 @@ import org.hibernate.annotations.ParamDef;
 @ToString(callSuper = true)
 @Entity
 @Table(name = "product_category")
-@FilterDef(name = "merchantFilter", parameters = @ParamDef(name = "merchantId", type = Long.class))
 @Filter(name = "merchantFilter", condition = "merchant_id = :merchantId")
 public class ProductCategory extends BaseEntity {
 

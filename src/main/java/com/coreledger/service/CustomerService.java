@@ -3,13 +3,11 @@ package com.coreledger.service;
 import cn.hutool.core.util.StrUtil;
 import com.coreledger.common.mapper.customer.CustomerConverter;
 import com.coreledger.dto.auth.CustomerRegisterDTO;
-import com.coreledger.dto.customer.CustomerCreateDTO;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.CustomerHistory;
 import com.coreledger.entity.Merchant;
-import com.coreledger.entity.SysAddress;
 import com.coreledger.enums.*;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
@@ -190,7 +188,7 @@ public class CustomerService {
         
         // 2. 创建客户
         Customer customer = new Customer();
-        customer.setCustomerNo(customerNo);
+        customer.setCode(customerNo);
         customer.setMerchantId(merchantId);
         customer.setName(customerName);
         customer.setPhone(phone);
@@ -254,6 +252,13 @@ public class CustomerService {
     }
 
     /**
+     * 根据用户ID查询该用户是客户的所有关系
+     */
+    public Optional<Customer> findFormalByUserIdAndMerchant(Long userId , Long merchant) {
+        return customerRepository.findByUserIdAndMerchantIdAndCustomerType(userId,merchant,CustomerType.FORMAL);
+    }
+
+    /**
      * 根据用户ID查询模板客户（TEMPLATE 类型）
      */
     public Optional<Customer> findTemplateByUserId(Long userId) {
@@ -271,7 +276,7 @@ public class CustomerService {
 
         // 2. 创建模板客户
         Customer customer = new Customer();
-        customer.setCustomerNo(customerNo);
+        customer.setCode(customerNo);
         customer.setMerchantId(null);  // 模板客户不绑定商户
         customer.setUserId(userId);
         customer.setName(dto.getCustomerName());
@@ -302,7 +307,7 @@ public class CustomerService {
 
         // 2. 从模板复制数据创建正式客户
         Customer formalCustomer = new Customer();
-        formalCustomer.setCustomerNo(customerNo);
+        formalCustomer.setCode(customerNo);
         formalCustomer.setMerchantId(merchantId);  // 绑定商户
         formalCustomer.setUserId(templateCustomer.getUserId());
         formalCustomer.setName(templateCustomer.getName());
@@ -338,7 +343,7 @@ public class CustomerService {
                 .collect(Collectors.toSet());
 
         Map<Long, String> merchantMap = merchantRepository.findAllById(merchantIds)
-                .stream().collect(Collectors.toMap(Merchant::getId, Merchant::getMerchantName, (a, b) -> a));
+                .stream().collect(Collectors.toMap(Merchant::getId, Merchant::getName, (a, b) -> a));
         // 2. 转换为 VO 填充商户名称
         return customers.stream().map(customer -> {
             CustomerVO vo = customerConverter.toVO(customer);

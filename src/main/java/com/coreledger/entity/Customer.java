@@ -11,8 +11,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 
 /**
  * 客户信息实体
@@ -28,13 +26,12 @@ import org.hibernate.annotations.ParamDef;
         @UniqueConstraint(name = "uk_user_merchant", columnNames = {"user_id", "merchant_id"}),
         @UniqueConstraint(name = "uk_customer_no_merchant", columnNames = {"customer_no", "merchant_id"})
 })
-@FilterDef(name = "merchantFilter", parameters = @ParamDef(name = "merchantId", type = Long.class))
 @Filter(name = "merchantFilter", condition = "merchant_id = :merchantId")
 public class Customer extends BaseEntity {
 
     /** 客户编号 */
-    @Column(name = "customer_no", nullable = false, length = 32)
-    private String customerNo;
+    @Column(name = "code", nullable = false, length = 32)
+    private String code;
 
     /** 关联的User ID，允许为空（商户手动创建时） */
     @Column(name = "user_id")

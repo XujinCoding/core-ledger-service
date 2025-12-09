@@ -16,14 +16,15 @@ import com.coreledger.utils.TokenUtil;
 import com.coreledger.utils.WechatUtil;
 import com.coreledger.vo.auth.LoginVO;
 import com.coreledger.vo.auth.UserIdentitiesVO;
-import com.coreledger.vo.auth.UserInfoVO;
+import com.coreledger.vo.auth.CurrentUserIdentityInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -50,7 +51,7 @@ public class AuthService {
     private final TokenUtil tokenUtil;
     private final MerchantService merchantService;
     private final CustomerService customerService;
-    private final RedisTemplate<String, Long> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
@@ -82,7 +83,7 @@ public class AuthService {
     public LoginVO passwordLogin(PasswordLoginDTO dto) {
         // 1. 校验
         SysUser user = validatePasswordLogin(dto);
-        log.info("密码登录成功: userId={}, phone={}", user.getId(), user.getPhone());
+        log.info("密码登录成功: userId={}, userName={}", user.getId(), user.getUsername());
 
         // 2. 返回
         return generateLoginResponse(user);
@@ -97,13 +98,10 @@ public class AuthService {
         validateMerchantRegister(dto);
 
         // 2. 获取数据
-        String openid = dto.getOpenid();
+        String openid = validateWechatLogin(dto.getCode());
         SysUser user = getOrCreateUser(openid);
-        user.setPhone(dto.getPhone());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setWxNickname(dto.getNickname());
-        user.setWxAvatarUrl(dto.getAvatarUrl());
         sysUserRepository.save(user);
 
         Merchant merchant = merchantService.createMerchant(dto.getMerchantName(), user.getId());
@@ -118,15 +116,10 @@ public class AuthService {
      */
     @Transactional(rollbackFor = Exception.class)
     public LoginVO customerWechatRegister(CustomerRegisterDTO dto) {
-        // 1. 校验
-        validateCustomerRegister(dto);
+        String openId = validateWechatLogin(dto.getCode());
 
         // 2. 获取数据
-        SysUser user = getOrCreateUser(dto.getOpenid());
-        user.setPhone(dto.getPhone());
-        user.setUsername(dto.getPhone());
-        user.setWxNickname(dto.getNickname());
-        user.setWxAvatarUrl(dto.getAvatarUrl());
+        SysUser user = getOrCreateUser(openId);
         sysUserRepository.save(user);
         Customer templateCustomer = customerService.createTemplateCustomer(dto, user.getId());
 
@@ -142,10 +135,7 @@ public class AuthService {
                 user.getId(), templateCustomer.getId(), dto.getPhone());
 
         // 3. 返回
-        LoginVO response = new LoginVO();
-        response.setUserInfo(buildBaseUserInfo(user));
-        response.setMessage("客户信息已保存，请选择商户进行绑定");
-        return response;
+        return generateLoginResponse(user, null, templateCustomer.getId());
 
     }
 
@@ -159,6 +149,12 @@ public class AuthService {
                 .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
 
         Long userId = AppSessionContext.getUserId();
+        // 如果当前user已经有存在客户绑定了商家, 不能重复绑定
+        List<Customer> formalByUserId = customerService.findFormalByUserId(userId);
+        if (CollectionUtils.isEmpty(formalByUserId)){
+            throw new BusinessException(BusinessCode.CUSTOMER_BIND_EXISTS);
+        }
+        assert userId != null;
         SysUser user = sysUserRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
 
@@ -167,7 +163,7 @@ public class AuthService {
 
         // 2. 处理
         Optional<Customer> existingCustomer = customerService
-                .findUnregisteredCustomerByPhoneAndMerchantId(user.getPhone(), merchant.getId());
+                .findUnregisteredCustomerByPhoneAndMerchantId(templateCustomer.getPhone(), merchant.getId());
 
         Customer formalCustomer;
         if (existingCustomer.isPresent()) {
@@ -246,13 +242,8 @@ public class AuthService {
     /**
      * 获取当前用户信息
      */
-    public UserInfoVO getCurrentUser(String token) {
-        if (StrUtil.isBlank(token)) {
-            throw new UnauthorizedException();
-        }
-
-        String cleanToken = token.startsWith(TOKEN_PREFIX) ? token.substring(TOKEN_PREFIX.length()) : token;
-        UserInfoVO userInfo = tokenUtil.getUserInfo(cleanToken);
+    public CurrentUserIdentityInfo getCurrentUser() {
+        CurrentUserIdentityInfo userInfo = tokenUtil.getCurrentUserIdentityInfo(AppSessionContext.getToken());
 
         if (userInfo == null) {
             throw new UnauthorizedException();
@@ -308,7 +299,7 @@ public class AuthService {
      * 校验密码登录
      */
     private SysUser validatePasswordLogin(PasswordLoginDTO dto) {
-        SysUser user = sysUserRepository.findByPhoneAndStatus(dto.getPhone(), Status.ACTIVE)
+        SysUser user = sysUserRepository.findByUsernameAndStatus(dto.getUserName(), Status.ACTIVE)
                 .orElseThrow(() -> new BusinessException(BusinessCode.USER_CREDENTIALS_INVALID));
 
         if (StrUtil.isBlank(user.getPassword())) {
@@ -333,28 +324,8 @@ public class AuthService {
      * 校验商户注册
      */
     private void validateMerchantRegister(MerchantRegisterDTO dto) {
-        if (sysUserRepository.existsByPhoneAndStatus(dto.getPhone(), Status.ACTIVE)) {
-            throw new BusinessException(BusinessCode.PHONE_ALREADY_BOUND);
-        }
         if (sysUserRepository.existsByUsernameAndStatus(dto.getUsername(), Status.ACTIVE)) {
             throw new BusinessException(BusinessCode.USERNAME_ALREADY_USED);
-        }
-    }
-
-    /**
-     * 校验客户注册
-     */
-    private void validateCustomerRegister(CustomerRegisterDTO dto) {
-        Optional<SysUser> existingUserByPhone = sysUserRepository.findByPhoneAndStatus(dto.getPhone(), Status.ACTIVE);
-        if (existingUserByPhone.isPresent() && !existingUserByPhone.get().getWxOpenid().equals(dto.getOpenid())) {
-            log.warn("手机号已被其他微信账号绑定: phone={}", dto.getPhone());
-            throw new BusinessException(BusinessCode.PHONE_ALREADY_BOUND);
-        }
-
-        Optional<Customer> existingTemplate = customerService.findTemplateByUserId(
-                existingUserByPhone.map(SysUser::getId).orElse(null));
-        if (existingTemplate.isPresent()) {
-            throw new BusinessException(BusinessCode.CUSTOMER_ALREADY_REGISTERED);
         }
     }
 
@@ -367,7 +338,6 @@ public class AuthService {
                     // 创建新用户
                     SysUser newUser = new SysUser();
                     newUser.setWxOpenid(openid);
-                    newUser.setRole(UserRole.USER);
                     newUser.setStatus(Status.ACTIVE);
                     return sysUserRepository.save(newUser);
                 });
@@ -381,7 +351,7 @@ public class AuthService {
         if (merchants.isEmpty()) {
             log.info("商户登录需要注册: userId={}", user.getId());
             LoginVO response = new LoginVO();
-            response.setUserInfo(buildBaseUserInfo(user));
+            response.setUserInfo(buildBaseUserInfo(user.getId(),IdentityType.MERCHANT_OWNER));
             response.setNeedRegister(true);
             response.setRegisterType(IdentityType.MERCHANT_OWNER);
             response.setMessage("请完成商户注册");
@@ -393,7 +363,7 @@ public class AuthService {
         } else {
             log.info("商户登录返回列表: userId={}, merchantCount={}", user.getId(), merchants.size());
             LoginVO response = new LoginVO();
-            response.setUserInfo(buildBaseUserInfo(user));
+            response.setUserInfo(buildBaseUserInfo(user.getId(),IdentityType.MERCHANT_OWNER));
             response.setMerchants(merchants);
             response.setRegisterType(IdentityType.MERCHANT_OWNER);
             response.setMessage("请选择商户");
@@ -416,7 +386,7 @@ public class AuthService {
             //没有模板客户, 第一次使用系统, 需要走注册流程
             log.info("客户登录需要注册: userId={}", user.getId());
             LoginVO response = new LoginVO();
-            response.setUserInfo(buildBaseUserInfo(user));
+            response.setUserInfo(buildBaseUserInfo(user.getId(),IdentityType.CUSTOMER));
             response.setNeedRegister(true);
             response.setRegisterType(IdentityType.CUSTOMER);
             response.setMessage("请完成客户注册");
@@ -437,7 +407,7 @@ public class AuthService {
             } else {
                 log.info("客户登录返回列表: userId={}, customerCount={}", user.getId(), customers.size());
                 LoginVO response = new LoginVO();
-                response.setUserInfo(buildBaseUserInfo(user));
+                response.setUserInfo(buildBaseUserInfo(user.getId(),IdentityType.CUSTOMER));
                 response.setCustomers(customerService.toVOListWithMerchantName(customers));
                 response.setRegisterType(IdentityType.CUSTOMER);
                 response.setMessage("请选择客户");
@@ -453,11 +423,12 @@ public class AuthService {
      */
     private Long getLastSelectedCustomerId(Long userId) {
         String redisKey = REDIS_KEY_LAST_CUSTOMER + userId;
-        Long customerId = redisTemplate.opsForValue().get(redisKey);
+        String customerId = stringRedisTemplate.opsForValue().get(redisKey);
         if (customerId != null) {
             log.info("从Redis获取上次选中的客户: userId={}, customerId={}", userId, customerId);
+            return Long.valueOf(customerId);
         }
-        return customerId;
+        return null;
     }
 
     /**
@@ -465,21 +436,16 @@ public class AuthService {
      */
     private void setLastSelectedCustomerId(Long userId, Long customerId) {
         String redisKey = REDIS_KEY_LAST_CUSTOMER + userId;
-        redisTemplate.opsForValue().set(redisKey, customerId, LAST_CUSTOMER_EXPIRE_DAYS, TimeUnit.DAYS);
+        stringRedisTemplate.opsForValue().set(redisKey, customerId.toString(), LAST_CUSTOMER_EXPIRE_DAYS, TimeUnit.DAYS);
     }
 
     /**
      * 构建基础用户信息
      */
-    private UserInfoVO buildBaseUserInfo(SysUser user) {
-        UserInfoVO userInfo = new UserInfoVO();
-        userInfo.setId(user.getId());
-        userInfo.setUsername(user.getUsername());
-        userInfo.setPhone(user.getPhone());
-        userInfo.setRole(user.getRole().getValue());
-        userInfo.setRoleDesc(user.getRole().getDescription());
-        userInfo.setWxNickname(user.getWxNickname());
-        userInfo.setWxAvatarUrl(user.getWxAvatarUrl());
+    private CurrentUserIdentityInfo buildBaseUserInfo(Long userId, IdentityType identityType) {
+        CurrentUserIdentityInfo userInfo = new CurrentUserIdentityInfo();
+        userInfo.setUserId(userId);
+        userInfo.setIdentityType(identityType);
         return userInfo;
     }
 
@@ -487,7 +453,7 @@ public class AuthService {
      * 生成登录响应（不带身份信息）
      */
     private LoginVO generateLoginResponse(SysUser user) {
-        UserInfoVO userInfo = buildBaseUserInfo(user);
+        CurrentUserIdentityInfo userInfo = buildBaseUserInfo(user.getId(),IdentityType.MERCHANT_OWNER);
         String token = tokenUtil.generateToken(userInfo);
         return LoginVO.success(token, userInfo, tokenUtil.getExpireTime());
     }
@@ -496,22 +462,51 @@ public class AuthService {
      * 生成登录响应（带身份信息）
      */
     private LoginVO generateLoginResponse(SysUser user, Long merchantId, Long customerId) {
-        UserInfoVO userInfo = buildBaseUserInfo(user);
-        userInfo.setMerchantId(merchantId);
-        userInfo.setCustomerId(customerId);
-
+        CurrentUserIdentityInfo userInfo = null;
+        String token = null;
         if (merchantId != null && customerId == null) {
+            // 商户登录
+            userInfo = buildBaseUserInfo(user.getId(),IdentityType.MERCHANT_OWNER);
+            userInfo.setId(merchantId);
+            userInfo.setMerchantId(merchantId);
+            Merchant merchant = merchantService.findById(merchantId)
+                    .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
+            userInfo.setName(merchant.getName());
+            userInfo.setCode(merchant.getCode());
+            userInfo.setPhone(merchant.getPhone());
+            userInfo.setAddressId(merchant.getAddressId());
+            userInfo.setAddressDetail(merchant.getAddressDetail());
             userInfo.setIdentityType(IdentityType.MERCHANT_OWNER);
+            token = tokenUtil.generateToken(userInfo);
         } else if (merchantId != null) {
+            // 正式客户登录
+            userInfo = buildBaseUserInfo(user.getId(),IdentityType.CUSTOMER);
+            Customer customer = customerService.findById(customerId)
+                    .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
+            userInfo.setId(customerId);
+            userInfo.setMerchantId(merchantId);
+            userInfo.setName(customer.getName());
+            userInfo.setCode(customer.getCode());
+            userInfo.setPhone(customer.getPhone());
+            userInfo.setAddressId(customer.getAddressId());
+            userInfo.setAddressDetail(customer.getAddressDetail());
             userInfo.setIdentityType(IdentityType.CUSTOMER);
+            token = tokenUtil.generateToken(userInfo);
+        }else if (customerId != null) {
+            // 模板客户登录
+            userInfo = buildBaseUserInfo(user.getId(),IdentityType.CUSTOMER);
+            userInfo.setIdentityType(IdentityType.CUSTOMER);
+            Customer customer = customerService.findById(customerId)
+                    .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
+            userInfo.setId(customerId);
+            userInfo.setName(customer.getName());
+            userInfo.setCode(customer.getCode());
+            userInfo.setPhone(customer.getPhone());
+            userInfo.setAddressId(customer.getAddressId());
+            userInfo.setAddressDetail(customer.getAddressDetail());
+            userInfo.setIdentityType(IdentityType.CUSTOMER);
+            token = tokenUtil.generateToken(userInfo);
         }
-
-        String token = tokenUtil.generateToken(userInfo);
-        LoginVO success = LoginVO.success(token, userInfo, tokenUtil.getExpireTime());
-        if (merchantId == null&& customerId != null) {
-            //如果没有商户有客户的话, 说明客户是模板客户, 提示用户绑定商户
-            success.setPotentialCustomer(true);
-        }
-        return success;
+        return LoginVO.success(token, userInfo, tokenUtil.getExpireTime());
     }
 }

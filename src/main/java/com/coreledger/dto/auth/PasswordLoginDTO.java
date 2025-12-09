@@ -12,16 +12,15 @@ import lombok.Data;
  * @since 1.0.0
  */
 @Data
-@Schema(description = "手机号密码登录请求")
+@Schema(description = "用户名密码登录请求")
 public class PasswordLoginDTO {
 
     /**
-     * 手机号
+     * 用户名
      */
-    @NotBlank(message = "手机号不能为空")
-    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
-    @Schema(description = "手机号", example = "13800138000")
-    private String phone;
+    @NotBlank(message = "用户名不能为空")
+    @Schema(description = "用户名", example = "13800138000")
+    private String userName;
 
     /**
      * 密码

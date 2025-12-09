@@ -29,7 +29,7 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
     /**
      * 根据user_id和merchant_id查询
      */
-    Optional<Customer> findByUserIdAndMerchantId(Long userId, Long merchantId);
+    Optional<Customer> findByUserIdAndMerchantIdAndCustomerType(Long userId, Long merchantId,CustomerType customerType);
 
     /**
      * 根据user_id查询所有客户
