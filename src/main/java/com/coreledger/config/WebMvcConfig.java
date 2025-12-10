@@ -25,6 +25,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**")  // 拦截所有 API 请求
                 .excludePathPatterns(
                         "/api/auth/wechat-login",    // 排除微信登录
+                        "/api/addresses/**",    // 排除微信登录
                         "/api/auth/merchant/wechat/register",    // 排除商户注册
                         "/api/auth/customer/wechat/register",    // 排除客户注册
                         "/api/auth/register",        // 排除注册
