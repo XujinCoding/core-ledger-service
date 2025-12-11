@@ -2,6 +2,7 @@ package com.coreledger.dto.auth;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -60,4 +61,17 @@ public class MerchantRegisterDTO {
      */
     @Schema(description = "微信头像URL", example = "https://thirdwx.qlogo.cn/...")
     private String avatarUrl;
+
+    /**
+     * 地址ID（客户专属信息）
+     */
+    @NotNull(message = "地址ID不能为空")
+    @Schema(description = "地址ID", example = "1")
+    private Long addressId;
+
+    /**
+     * 详细地址（客户专属信息）
+     */
+    @Schema(description = "详细地址", example = "北京市朝阳区某某街道")
+    private String addressDetail;
 }

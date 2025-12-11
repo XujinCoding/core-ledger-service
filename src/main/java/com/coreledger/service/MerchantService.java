@@ -1,5 +1,6 @@
 package com.coreledger.service;
 
+import com.coreledger.dto.auth.MerchantRegisterDTO;
 import com.coreledger.entity.Merchant;
 import com.coreledger.enums.Status;
 import com.coreledger.repository.MerchantRepository;
@@ -31,7 +32,7 @@ public class MerchantService {
      * 创建商户
      */
     @Transactional(rollbackFor = Exception.class)
-    public Merchant createMerchant(String merchantName, Long ownerUserId) {
+    public Merchant createMerchant(MerchantRegisterDTO dto, Long ownerUserId) {
         // 1. 生成商户编号
         String merchantNo = generateMerchantNo();
         
@@ -41,9 +42,12 @@ public class MerchantService {
         // 3. 创建商户
         Merchant merchant = new Merchant();
         merchant.setCode(merchantNo);
-        merchant.setName(merchantName);
+        merchant.setName(dto.getMerchantName());
         merchant.setOwnerUserId(ownerUserId);
         merchant.setInviteCode(inviteCode);
+        merchant.setPhone(dto.getPhone());
+        merchant.setAddressId(dto.getAddressId());
+        merchant.setAddressDetail(dto.getAddressDetail());
         merchant.setStatus(Status.ACTIVE);  // 默认启用
         
         merchant = merchantRepository.save(merchant);

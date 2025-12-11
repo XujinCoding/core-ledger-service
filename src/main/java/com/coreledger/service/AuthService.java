@@ -104,7 +104,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         sysUserRepository.save(user);
 
-        Merchant merchant = merchantService.createMerchant(dto.getMerchantName(), user.getId());
+        Merchant merchant = merchantService.createMerchant(dto, user.getId());
         log.info("商户注册成功: userId={}, merchantId={}, phone={}", user.getId(), merchant.getId(), dto.getPhone());
 
         // 3. 返回
