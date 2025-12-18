@@ -179,7 +179,7 @@ public class ProductCategoryService {
     public List<CategoryTreeVO> getCategoryTree() {
         List<ProductCategory> allCategories = categoryRepository.findAll(
                 PredicateBuilder.<ProductCategory>and()
-                        .equal("merchant_id", AppSessionContext.getMerchantId())
+                        .equal("merchantId", AppSessionContext.getMerchantId())
                         .equal("status", Status.ACTIVE)
                         .build()
         );
