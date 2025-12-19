@@ -42,15 +42,7 @@ public class MerchantController {
                 .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
 
         // 2. 创建客户
-        Customer customer = customerService.createCustomer(
-                merchant.getId(),
-                dto.getCustomerName(),
-                dto.getPhone(),
-                dto.getAddress(),
-                dto.getGender(),
-                dto.getAge(),
-                null  // 商户手动创建时，user_id为NULL
-        );
+        Customer customer = customerService.createUnregisteredCustomer(dto);
         return Result.success(customer);
     }
 

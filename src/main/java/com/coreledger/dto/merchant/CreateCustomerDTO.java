@@ -31,12 +31,17 @@ public class CreateCustomerDTO {
      */
     @Schema(description = "手机号", example = "13800138000")
     private String phone;
-
     /**
      * 地址
      */
+    @Schema(description = "地址标识", example = "10000")
+    private Long addressId;
+
+    /**
+     * 地址详情
+     */
     @Schema(description = "地址", example = "北京市朝阳区")
-    private String address;
+    private String addressDetail;
 
     /**
      * 性别：0=未知, 1=男, 2=女

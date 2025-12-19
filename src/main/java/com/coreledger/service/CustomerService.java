@@ -5,6 +5,7 @@ import com.coreledger.common.mapper.customer.CustomerConverter;
 import com.coreledger.dto.auth.CustomerRegisterDTO;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
+import com.coreledger.dto.merchant.CreateCustomerDTO;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.CustomerHistory;
 import com.coreledger.entity.Merchant;
@@ -181,24 +182,22 @@ public class CustomerService {
      * 创建客户（用于商户手动创建或客户注册时）
      */
     @Transactional
-    public Customer createCustomer(Long merchantId, String customerName, String phone,
-                                   String address, Gender gender, Integer age, Long userId) {
+    public Customer createUnregisteredCustomer(CreateCustomerDTO dto) {
         // 1. 生成客户编号
         String customerNo = generateCustomerNo();
         
         // 2. 创建客户
         Customer customer = new Customer();
         customer.setCode(customerNo);
-        customer.setMerchantId(merchantId);
-        customer.setName(customerName);
-        customer.setPhone(phone);
-        customer.setAddressDetail(address);
-        customer.setGender(gender != null ? gender : Gender.UNKNOWN);
-        customer.setAge(age);
-        customer.setUserId(userId);
-        customer.setIsRegistered(userId != null ? RegisterStatus.REGISTERED : RegisterStatus.UNREGISTERED);
-        customer.setStatus(Status.ACTIVE);  // 默认启用
-        
+        customer.setMerchantId(dto.getMerchantId());
+        customer.setName(dto.getCustomerName());
+        customer.setAddressId(dto.getAddressId());
+        customer.setPhone(dto.getPhone());
+        customer.setAddressDetail(dto.getAddressDetail());
+        customer.setGender(dto.getGender());
+        customer.setAge(dto.getAge());
+        customer.setIsRegistered(RegisterStatus.UNREGISTERED);
+        customer.setStatus(Status.ACTIVE);
         customer = customerRepository.save(customer);
         // 3. 保存客户快照（创建操作）
         saveCustomerSnapshot(customer, OperationType.CREATE);
@@ -230,12 +229,6 @@ public class CustomerService {
         return customerRepository.findByPhoneAndMerchantIdAndUserIdIsNull(phone, merchantId);
     }
 
-    /**
-     * 检查user_id和merchant_id是否已存在
-     */
-    public boolean existsByUserIdAndMerchantId(Long userId, Long merchantId) {
-        return customerRepository.existsByUserIdAndMerchantId(userId, merchantId);
-    }
 
     /**
      * 根据ID查询客户
@@ -249,13 +242,6 @@ public class CustomerService {
      */
     public List<Customer> findFormalByUserId(Long userId) {
         return customerRepository.findByUserIdAndCustomerType(userId,CustomerType.FORMAL);
-    }
-
-    /**
-     * 根据用户ID查询该用户是客户的所有关系
-     */
-    public Optional<Customer> findFormalByUserIdAndMerchant(Long userId , Long merchant) {
-        return customerRepository.findByUserIdAndMerchantIdAndCustomerType(userId,merchant,CustomerType.FORMAL);
     }
 
     /**
