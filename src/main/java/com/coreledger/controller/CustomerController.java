@@ -4,6 +4,7 @@ import com.coreledger.common.Result;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
 import com.coreledger.service.CustomerService;
+import com.coreledger.vo.customer.CustomerStatsVO;
 import com.coreledger.vo.customer.CustomerVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,6 +50,15 @@ public class CustomerController {
     @GetMapping("/{id}")
     public Result<CustomerVO> getCustomer(@PathVariable Long id) {
         return Result.success(customerService.getCustomer(id));
+    }
+
+    /**
+     * 获取客户统计信息
+     */
+    @Operation(summary = "获取客户统计信息", description = "根据ID获取客户消费统计（总金额、订单数、平均消费）")
+    @GetMapping("/{id}/stats")
+    public Result<CustomerStatsVO> getCustomerStats(@PathVariable Long id) {
+        return Result.success(customerService.getCustomerStats(id));
     }
 
     /**

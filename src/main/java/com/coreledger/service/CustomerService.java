@@ -14,9 +14,12 @@ import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.repository.CustomerHistoryRepository;
 import com.coreledger.repository.CustomerRepository;
+import com.coreledger.repository.LedgerRepository;
 import com.coreledger.repository.MerchantRepository;
 import com.coreledger.repository.SysAddressRepository;
+import com.coreledger.utils.AppSessionContext;
 import com.coreledger.utils.specification.PredicateBuilder;
+import com.coreledger.vo.customer.CustomerStatsVO;
 import com.coreledger.vo.customer.CustomerVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +29,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -47,6 +52,7 @@ public class CustomerService {
     private final SysAddressRepository addressRepository;
     private final CustomerHistoryRepository historyRepository;
     private final MerchantRepository merchantRepository;
+    private final LedgerRepository ledgerRepository;
     private final CustomerConverter customerConverter;
     private final AddressService addressService;
 
@@ -103,6 +109,36 @@ public class CustomerService {
     }
 
     /**
+     * 获取客户统计信息
+     *
+     * @param id 客户ID
+     * @return 客户统计信息VO
+     * @throws NotFoundException 当客户不存在时抛出 (BusinessCode.CUSTOMER_NOT_FOUND)
+     */
+    public CustomerStatsVO getCustomerStats(Long id) {
+        // 校验客户是否存在
+        if (!customerRepository.existsById(id)) {
+            throw new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND);
+        }
+
+        // 统计订单数量和总金额
+        Integer orderCount = ledgerRepository.countByCustomerId(id);
+        BigDecimal totalAmount = ledgerRepository.sumPaidAmountByCustomerId(id);
+
+        // 计算平均消费金额
+        BigDecimal avgAmount = BigDecimal.ZERO;
+        if (orderCount != null && orderCount > 0 && totalAmount != null) {
+            avgAmount = totalAmount.divide(BigDecimal.valueOf(orderCount), 2, RoundingMode.HALF_UP);
+        }
+
+        return CustomerStatsVO.builder()
+                .totalAmount(totalAmount != null ? totalAmount : BigDecimal.ZERO)
+                .orderCount(orderCount != null ? orderCount : 0)
+                .avgAmount(avgAmount)
+                .build();
+    }
+
+    /**
      * 条件查询客户列表
      *
      * <p>当传入地址ID时，会查询该地址下所有子地址（包括子孙地址）的客户</p>
@@ -121,6 +157,7 @@ public class CustomerService {
         Specification<Customer> spec = PredicateBuilder.<Customer>and()
                 .like(StrUtil::isNotBlank, "name", dto.getName())
                 .like(StrUtil::isNotBlank, "phone", dto.getPhone())
+                .equal("merchantId", AppSessionContext.getMerchantId())
                 .in("addressId", addressIds)
                 .build();
 
