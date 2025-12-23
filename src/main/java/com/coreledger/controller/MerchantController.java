@@ -8,6 +8,9 @@ import com.coreledger.enums.BusinessCode;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.service.CustomerService;
 import com.coreledger.service.MerchantService;
+import com.coreledger.service.MerchantStatsService;
+import com.coreledger.vo.merchant.MerchantStatsVO;
+import com.coreledger.vo.merchant.TodayStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ public class MerchantController {
 
     private final MerchantService merchantService;
     private final CustomerService customerService;
+    private final MerchantStatsService merchantStatsService;
 
     /**
      * 创建客户
@@ -55,5 +59,23 @@ public class MerchantController {
         Merchant merchant = merchantService.findById(merchantId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
         return Result.success(merchant);
+    }
+
+    /**
+     * 获取商户本月统计数据
+     */
+    @GetMapping("/{merchantId}/stats")
+    @Operation(summary = "获取商户本月统计", description = "获取本月销售额、待收款、本月订单数")
+    public Result<MerchantStatsVO> getMerchantStats(@PathVariable Long merchantId) {
+        return Result.success(merchantStatsService.getMerchantStats(merchantId));
+    }
+
+    /**
+     * 获取商户今日汇总数据
+     */
+    @GetMapping("/{merchantId}/today-stats")
+    @Operation(summary = "获取商户今日汇总", description = "获取今日销售额、已收款、新增欠款、订单数")
+    public Result<TodayStatsVO> getTodayStats(@PathVariable Long merchantId) {
+        return Result.success(merchantStatsService.getTodayStats(merchantId));
     }
 }

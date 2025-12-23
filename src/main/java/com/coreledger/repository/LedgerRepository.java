@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 账本Repository接口
@@ -17,6 +18,83 @@ import java.math.BigDecimal;
  */
 @Repository
 public interface LedgerRepository extends JpaRepository<Ledger, Long>, JpaSpecificationExecutor<Ledger> {
+
+    // ==================== 商户统计查询 ====================
+
+    /**
+     * 统计商户本月销售总额（totalAmount）
+     */
+    @Query("SELECT COALESCE(SUM(l.totalAmount), 0) FROM Ledger l " +
+           "WHERE l.merchantId = :merchantId " +
+           "AND l.createInstant >= :startTime " +
+           "AND l.createInstant < :endTime")
+    BigDecimal sumMonthlySales(@Param("merchantId") Long merchantId,
+                               @Param("startTime") LocalDateTime startTime,
+                               @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 统计商户待收款金额（赊账中账单的未付金额）
+     */
+    @Query("SELECT COALESCE(SUM(l.totalAmount - l.paidAmount - l.discountAmount), 0) FROM Ledger l " +
+           "WHERE l.merchantId = :merchantId " +
+           "AND l.ledgerStatus = com.coreledger.enums.LedgerStatus.ON_CREDIT")
+    BigDecimal sumPendingAmount(@Param("merchantId") Long merchantId);
+
+    /**
+     * 统计商户本月订单数
+     */
+    @Query("SELECT COUNT(l) FROM Ledger l " +
+           "WHERE l.merchantId = :merchantId " +
+           "AND l.createInstant >= :startTime " +
+           "AND l.createInstant < :endTime")
+    Integer countMonthlyOrders(@Param("merchantId") Long merchantId,
+                               @Param("startTime") LocalDateTime startTime,
+                               @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 统计商户今日销售总额
+     */
+    @Query("SELECT COALESCE(SUM(l.totalAmount), 0) FROM Ledger l " +
+           "WHERE l.merchantId = :merchantId " +
+           "AND l.createInstant >= :startTime " +
+           "AND l.createInstant < :endTime")
+    BigDecimal sumTodaySales(@Param("merchantId") Long merchantId,
+                             @Param("startTime") LocalDateTime startTime,
+                             @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 统计商户今日已收款
+     */
+    @Query("SELECT COALESCE(SUM(l.paidAmount), 0) FROM Ledger l " +
+           "WHERE l.merchantId = :merchantId " +
+           "AND l.createInstant >= :startTime " +
+           "AND l.createInstant < :endTime")
+    BigDecimal sumTodayPayment(@Param("merchantId") Long merchantId,
+                               @Param("startTime") LocalDateTime startTime,
+                               @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 统计商户今日新增欠款（赊账中账单的未付金额，仅今日创建）
+     */
+    @Query("SELECT COALESCE(SUM(l.totalAmount - l.paidAmount - l.discountAmount), 0) FROM Ledger l " +
+           "WHERE l.merchantId = :merchantId " +
+           "AND l.ledgerStatus = com.coreledger.enums.LedgerStatus.ON_CREDIT " +
+           "AND l.createInstant >= :startTime " +
+           "AND l.createInstant < :endTime")
+    BigDecimal sumTodayDebt(@Param("merchantId") Long merchantId,
+                            @Param("startTime") LocalDateTime startTime,
+                            @Param("endTime") LocalDateTime endTime);
+
+    /**
+     * 统计商户今日订单数
+     */
+    @Query("SELECT COUNT(l) FROM Ledger l " +
+           "WHERE l.merchantId = :merchantId " +
+           "AND l.createInstant >= :startTime " +
+           "AND l.createInstant < :endTime")
+    Integer countTodayOrders(@Param("merchantId") Long merchantId,
+                             @Param("startTime") LocalDateTime startTime,
+                             @Param("endTime") LocalDateTime endTime);
 
     /**
      * 统计客户的订单数量
