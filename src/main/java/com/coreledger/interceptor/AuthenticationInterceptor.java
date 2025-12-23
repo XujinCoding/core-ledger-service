@@ -93,8 +93,18 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         if (IdentityType.MERCHANT_OWNER.equals(userInfo.getIdentityType()) 
                 && userInfo.getMerchantId() == null) {
             String uri = request.getRequestURI();
-            if (!isAllowedWithoutMerchant(uri)) {
+            if (!isAllowedWithoutIdentity(uri)) {
                 log.warn("商户身份未选择商户: userId={}, uri={}", userInfo.getUserId(), uri);
+                throw new BusinessException(BusinessCode.MERCHANT_NOT_SELECTED);
+            }
+        }
+
+        // 7. 检查客户身份是否已选择客户（临时token限制）
+        if (IdentityType.CUSTOMER.equals(userInfo.getIdentityType()) 
+                && userInfo.getMerchantId() == null && userInfo.getId() == null) {
+            String uri = request.getRequestURI();
+            if (!isAllowedWithoutIdentity(uri)) {
+                log.warn("客户身份未选择客户: userId={}, uri={}", userInfo.getUserId(), uri);
                 throw new BusinessException(BusinessCode.MERCHANT_NOT_SELECTED);
             }
         }
@@ -103,9 +113,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * 检查是否允许未选择商户时访问的接口
+     * 检查是否允许未选择身份时访问的接口（临时token白名单）
      */
-    private boolean isAllowedWithoutMerchant(String uri) {
+    private boolean isAllowedWithoutIdentity(String uri) {
         return uri.contains("/auth/switch-identity")
                 || uri.contains("/auth/identities")
                 || uri.contains("/auth/logout")

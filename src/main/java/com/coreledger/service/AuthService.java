@@ -412,10 +412,16 @@ public class AuthService {
                 return generateLoginResponse(user, customer.getMerchantId(), lastSelectedCustomerId);
             } else {
                 log.info("客户登录返回列表: userId={}, customerCount={}", user.getId(), customers.size());
+                // 生成临时token（不含customerId/merchantId），用于选择客户
+                CurrentUserIdentityInfo userInfo = buildBaseUserInfo(user.getId(), IdentityType.CUSTOMER);
+                String tempToken = tokenUtil.generateTempToken(userInfo);
+                
                 LoginVO response = new LoginVO();
-                response.setUserInfo(buildBaseUserInfo(user.getId(),IdentityType.CUSTOMER));
+                response.setToken(tempToken);
+                response.setExpireTime(tokenUtil.getTempExpireTime());
+                response.setUserInfo(userInfo);
                 response.setCustomers(customerService.toVOListWithMerchantName(customers));
-                response.setRegisterType(IdentityType.CUSTOMER);
+                response.setNeedSelect(true);
                 response.setMessage("请选择客户");
                 return response;
             }
