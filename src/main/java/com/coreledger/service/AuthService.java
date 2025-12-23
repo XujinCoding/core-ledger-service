@@ -362,10 +362,16 @@ public class AuthService {
             return generateLoginResponse(user, merchant.getId(), null);
         } else {
             log.info("商户登录返回列表: userId={}, merchantCount={}", user.getId(), merchants.size());
+            // 生成临时token（不含merchantId），用于选择商户
+            CurrentUserIdentityInfo userInfo = buildBaseUserInfo(user.getId(), IdentityType.MERCHANT_OWNER);
+            String tempToken = tokenUtil.generateTempToken(userInfo);
+            
             LoginVO response = new LoginVO();
-            response.setUserInfo(buildBaseUserInfo(user.getId(),IdentityType.MERCHANT_OWNER));
+            response.setToken(tempToken);
+            response.setExpireTime(tokenUtil.getTempExpireTime());
+            response.setUserInfo(userInfo);
             response.setMerchants(merchants);
-            response.setRegisterType(IdentityType.MERCHANT_OWNER);
+            response.setNeedSelect(true);
             response.setMessage("请选择商户");
             return response;
         }

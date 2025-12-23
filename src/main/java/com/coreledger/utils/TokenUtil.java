@@ -36,6 +36,11 @@ public class TokenUtil {
     private static final int TOKEN_EXPIRE_DAYS = 7;
 
     /**
+     * 临时Token有效期（分钟）
+     */
+    private static final int TEMP_TOKEN_EXPIRE_MINUTES = 5;
+
+    /**
      * 生成 Token
      *
      * @param userInfo 用户信息
@@ -51,6 +56,29 @@ public class TokenUtil {
 
         log.info("生成Token成功: userId={}, token={}", userInfo.getUserId(), token);
         return token;
+    }
+
+    /**
+     * 生成临时Token（用于多商户/多客户选择场景）
+     * 有效期5分钟，仅允许访问切换身份等有限接口
+     *
+     * @param userInfo 用户信息（不含merchantId）
+     * @return Token 字符串
+     */
+    public String generateTempToken(CurrentUserIdentityInfo userInfo) {
+        String token = IdUtil.simpleUUID();
+        String key = TOKEN_PREFIX + token;
+        redisTemplate.opsForValue().set(key, userInfo, TEMP_TOKEN_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        log.info("生成临时Token成功: userId={}, token={}, expireMinutes={}", 
+                userInfo.getUserId(), token, TEMP_TOKEN_EXPIRE_MINUTES);
+        return token;
+    }
+
+    /**
+     * 获取临时Token过期时间
+     */
+    public LocalDateTime getTempExpireTime() {
+        return LocalDateTime.now().plusMinutes(TEMP_TOKEN_EXPIRE_MINUTES);
     }
 
     /**

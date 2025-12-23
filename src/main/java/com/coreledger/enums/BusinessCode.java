@@ -183,6 +183,9 @@ public enum BusinessCode {
     /** 权限不足 */
     UNAUTHORIZED_OPERATION(5013, "权限不足"),
 
+    /** 未选择商户 */
+    MERCHANT_NOT_SELECTED(5017, "请先选择商户"),
+
     /** 客户已注册 */
     CUSTOMER_ALREADY_REGISTERED(5015, "该用户已注册为客户"),
 

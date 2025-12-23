@@ -1,7 +1,9 @@
 package com.coreledger.interceptor;
 
 import cn.hutool.core.util.StrUtil;
+import com.coreledger.enums.BusinessCode;
 import com.coreledger.enums.IdentityType;
+import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.UnauthorizedException;
 import com.coreledger.utils.AppSessionContext;
 import com.coreledger.utils.TokenUtil;
@@ -87,7 +89,27 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             log.debug("启用 merchantFilter: merchantId={}", userInfo.getMerchantId());
         }
 
+        // 6. 检查商户身份是否已选择商户（临时token限制）
+        if (IdentityType.MERCHANT_OWNER.equals(userInfo.getIdentityType()) 
+                && userInfo.getMerchantId() == null) {
+            String uri = request.getRequestURI();
+            if (!isAllowedWithoutMerchant(uri)) {
+                log.warn("商户身份未选择商户: userId={}, uri={}", userInfo.getUserId(), uri);
+                throw new BusinessException(BusinessCode.MERCHANT_NOT_SELECTED);
+            }
+        }
+
         return true;
+    }
+
+    /**
+     * 检查是否允许未选择商户时访问的接口
+     */
+    private boolean isAllowedWithoutMerchant(String uri) {
+        return uri.contains("/auth/switch-identity")
+                || uri.contains("/auth/identities")
+                || uri.contains("/auth/logout")
+                || uri.contains("/auth/current-user");
     }
 
     @Override

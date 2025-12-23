@@ -67,6 +67,13 @@ public class LoginVO {
     private List<CustomerVO> customers;
 
     /**
+     * 是否需要选择身份（多商户/多客户场景）
+     * true: 返回了临时token，需要用户选择后切换身份
+     */
+    @Schema(description = "是否需要选择身份", example = "false")
+    private Boolean needSelect;
+
+    /**
      * 提示信息
      */
     @Schema(description = "提示信息", example = "请选择商户")
