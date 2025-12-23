@@ -1,7 +1,9 @@
 package com.coreledger.controller;
 
 import com.coreledger.common.Result;
+import com.coreledger.dto.auth.MerchantRegisterDTO;
 import com.coreledger.dto.merchant.CreateCustomerDTO;
+import com.coreledger.dto.merchant.UpdateMerchantDTO;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.Merchant;
 import com.coreledger.enums.BusinessCode;
@@ -9,6 +11,8 @@ import com.coreledger.exception.NotFoundException;
 import com.coreledger.service.CustomerService;
 import com.coreledger.service.MerchantService;
 import com.coreledger.service.MerchantStatsService;
+import com.coreledger.utils.AppSessionContext;
+import com.coreledger.vo.merchant.MerchantOverviewVO;
 import com.coreledger.vo.merchant.MerchantStatsVO;
 import com.coreledger.vo.merchant.TodayStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -77,5 +81,32 @@ public class MerchantController {
     @Operation(summary = "获取商户今日汇总", description = "获取今日销售额、已收款、新增欠款、订单数")
     public Result<TodayStatsVO> getTodayStats(@PathVariable Long merchantId) {
         return Result.success(merchantStatsService.getTodayStats(merchantId));
+    }
+
+    /**
+     * 获取商户概览统计
+     */
+    @GetMapping("/{merchantId}/overview")
+    @Operation(summary = "获取商户概览统计", description = "获取客户数、商品数、账单数")
+    public Result<MerchantOverviewVO> getMerchantOverview(@PathVariable Long merchantId) {
+        return Result.success(merchantStatsService.getMerchantOverview(merchantId));
+    }
+
+    /**
+     * 更新商户信息
+     */
+    @PutMapping("/{merchantId}")
+    @Operation(summary = "更新商户信息", description = "更新商户名称、手机号、地址等")
+    public Result<Merchant> updateMerchant(@PathVariable Long merchantId, @RequestBody UpdateMerchantDTO dto) {
+        return Result.success(merchantService.updateMerchant(merchantId, dto));
+    }
+
+    /**
+     * 创建店铺（当前用户名下）
+     */
+    @PostMapping("/create")
+    @Operation(summary = "创建店铺", description = "在当前用户名下创建新店铺")
+    public Result<Merchant> createMerchant(@RequestBody MerchantRegisterDTO dto) {
+        return Result.success(merchantService.createMerchant(dto, AppSessionContext.getUserId()));
     }
 }

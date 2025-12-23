@@ -106,6 +106,14 @@ public interface LedgerRepository extends JpaRepository<Ledger, Long>, JpaSpecif
     Integer countByCustomerId(@Param("customerId") Long customerId);
 
     /**
+     * 统计商户的账单数量
+     *
+     * @param merchantId 商户ID
+     * @return 账单数量
+     */
+    long countByMerchantId(@Param("merchantId") Long merchantId);
+
+    /**
      * 统计客户的总消费金额（已支付金额）
      *
      * @param customerId 客户ID

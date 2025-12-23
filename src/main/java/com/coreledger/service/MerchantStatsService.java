@@ -1,6 +1,9 @@
 package com.coreledger.service;
 
+import com.coreledger.repository.CustomerRepository;
 import com.coreledger.repository.LedgerRepository;
+import com.coreledger.repository.ProductRepository;
+import com.coreledger.vo.merchant.MerchantOverviewVO;
 import com.coreledger.vo.merchant.MerchantStatsVO;
 import com.coreledger.vo.merchant.TodayStatsVO;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,8 @@ import java.time.LocalTime;
 public class MerchantStatsService {
 
     private final LedgerRepository ledgerRepository;
+    private final CustomerRepository customerRepository;
+    private final ProductRepository productRepository;
 
     /**
      * 获取商户本月统计数据
@@ -78,6 +83,26 @@ public class MerchantStatsService {
                 .payment(payment != null ? payment : BigDecimal.ZERO)
                 .debt(debt != null ? debt : BigDecimal.ZERO)
                 .orders(orders != null ? orders : 0)
+                .build();
+    }
+
+    /**
+     * 获取商户概览统计（客户数、商品数、账单数）
+     *
+     * @param merchantId 商户ID
+     * @return 概览统计VO
+     */
+    public MerchantOverviewVO getMerchantOverview(Long merchantId) {
+        log.info("获取商户概览统计，商户ID: {}", merchantId);
+
+        long customerCount = customerRepository.countByMerchantId(merchantId);
+        long productCount = productRepository.countByMerchantId(merchantId);
+        long ledgerCount = ledgerRepository.countByMerchantId(merchantId);
+
+        return MerchantOverviewVO.builder()
+                .customerCount((int) customerCount)
+                .productCount((int) productCount)
+                .ledgerCount((int) ledgerCount)
                 .build();
     }
 }

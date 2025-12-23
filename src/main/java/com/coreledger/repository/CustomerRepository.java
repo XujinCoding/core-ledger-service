@@ -60,4 +60,9 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
      * 根据user_id和customer_type查询客户
      */
     List<Customer> findByUserIdAndCustomerType(Long userId, CustomerType customerType);
+
+    /**
+     * 统计商户的客户数量
+     */
+    long countByMerchantId(Long merchantId);
 }

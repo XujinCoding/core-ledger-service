@@ -23,4 +23,12 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
      * @return 商品数量
      */
     long countByCategoryIdAndStatus(Long categoryId, Status status);
+
+    /**
+     * 统计商户的商品数量
+     *
+     * @param merchantId 商户ID
+     * @return 商品数量
+     */
+    long countByMerchantId(Long merchantId);
 }

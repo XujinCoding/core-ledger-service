@@ -1,6 +1,7 @@
 package com.coreledger.service;
 
 import com.coreledger.dto.auth.MerchantRegisterDTO;
+import com.coreledger.dto.merchant.UpdateMerchantDTO;
 import com.coreledger.entity.Merchant;
 import com.coreledger.enums.Status;
 import com.coreledger.repository.MerchantRepository;
@@ -99,5 +100,35 @@ public class MerchantService {
             code.append(chars.charAt(random.nextInt(chars.length())));
         }
         return code.toString();
+    }
+
+    /**
+     * 更新商户信息
+     *
+     * @param merchantId 商户ID
+     * @param dto 更新信息
+     * @return 更新后的商户
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Merchant updateMerchant(Long merchantId, UpdateMerchantDTO dto) {
+        Merchant merchant = merchantRepository.findById(merchantId)
+                .orElseThrow(() -> new RuntimeException("商户不存在"));
+
+        if (dto.getName() != null && !dto.getName().isBlank()) {
+            merchant.setName(dto.getName());
+        }
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
+            merchant.setPhone(dto.getPhone());
+        }
+        if (dto.getAddressId() != null) {
+            merchant.setAddressId(dto.getAddressId());
+        }
+        if (dto.getAddressDetail() != null) {
+            merchant.setAddressDetail(dto.getAddressDetail());
+        }
+
+        merchant = merchantRepository.save(merchant);
+        log.info("更新商户信息成功: merchantId={}", merchantId);
+        return merchant;
     }
 }
