@@ -4,13 +4,12 @@ import cn.hutool.core.util.StrUtil;
 import com.coreledger.common.mapper.product.ProductConverter;
 import com.coreledger.common.mapper.product.ProductAttrConverter;
 import com.coreledger.common.mapper.product.ProductSkuConverter;
+import com.coreledger.utils.AppSessionContext;
 import com.coreledger.utils.specification.PredicateBuilder;
 import com.coreledger.dto.product.ProductCreateDTO;
 import com.coreledger.dto.product.ProductUpdateDTO;
 import com.coreledger.entity.Product;
 import com.coreledger.entity.ProductCategory;
-import com.coreledger.entity.ProductAttr;
-import com.coreledger.entity.ProductSku;
 import com.coreledger.enums.BusinessCode;
 import com.coreledger.enums.Status;
 import com.coreledger.exception.NotFoundException;
@@ -65,6 +64,7 @@ public class ProductService {
 
         // 创建商品
         Product product = productConverter.toEntity(dto);
+        product.setMerchantId(AppSessionContext.getMerchantId());
         product.setStatus(Status.ACTIVE);
         product = productRepository.save(product);
         
