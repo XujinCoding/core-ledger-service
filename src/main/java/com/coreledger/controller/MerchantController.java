@@ -4,16 +4,14 @@ import com.coreledger.common.Result;
 import com.coreledger.dto.auth.MerchantRegisterDTO;
 import com.coreledger.dto.merchant.CreateCustomerDTO;
 import com.coreledger.dto.merchant.UpdateMerchantDTO;
-import com.coreledger.entity.Customer;
-import com.coreledger.entity.Merchant;
-import com.coreledger.enums.BusinessCode;
-import com.coreledger.exception.NotFoundException;
 import com.coreledger.service.CustomerService;
 import com.coreledger.service.MerchantService;
 import com.coreledger.service.MerchantStatsService;
 import com.coreledger.utils.AppSessionContext;
+import com.coreledger.vo.customer.CustomerVO;
 import com.coreledger.vo.merchant.MerchantOverviewVO;
 import com.coreledger.vo.merchant.MerchantStatsVO;
+import com.coreledger.vo.merchant.MerchantVO;
 import com.coreledger.vo.merchant.TodayStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,15 +41,8 @@ public class MerchantController {
      */
     @PostMapping("/customer/create")
     @Operation(summary = "创建客户")
-    public Result<Customer> createCustomer(@RequestBody CreateCustomerDTO dto) {
-        
-        // 1. 查询商户
-        Merchant merchant = merchantService.findById(dto.getMerchantId())
-                .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
-
-        // 2. 创建客户
-        Customer customer = customerService.createUnregisteredCustomer(dto);
-        return Result.success(customer);
+    public Result<CustomerVO> createCustomer(@RequestBody CreateCustomerDTO dto) {
+        return Result.success(customerService.createUnregisteredCustomer(dto));
     }
 
     /**
@@ -59,10 +50,8 @@ public class MerchantController {
      */
     @GetMapping("/{merchantId}")
     @Operation(summary = "获取商户信息")
-    public Result<Merchant> getMerchant(@PathVariable Long merchantId) {
-        Merchant merchant = merchantService.findById(merchantId)
-                .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
-        return Result.success(merchant);
+    public Result<MerchantVO> getMerchant(@PathVariable Long merchantId) {
+        return Result.success(merchantService.getMerchantVO(merchantId));
     }
 
     /**
@@ -97,7 +86,7 @@ public class MerchantController {
      */
     @PutMapping("/{merchantId}")
     @Operation(summary = "更新商户信息", description = "更新商户名称、手机号、地址等")
-    public Result<Merchant> updateMerchant(@PathVariable Long merchantId, @RequestBody UpdateMerchantDTO dto) {
+    public Result<MerchantVO> updateMerchant(@PathVariable Long merchantId, @RequestBody UpdateMerchantDTO dto) {
         return Result.success(merchantService.updateMerchant(merchantId, dto));
     }
 
@@ -106,7 +95,7 @@ public class MerchantController {
      */
     @PostMapping("/create")
     @Operation(summary = "创建店铺", description = "在当前用户名下创建新店铺")
-    public Result<Merchant> createMerchant(@RequestBody MerchantRegisterDTO dto) {
+    public Result<MerchantVO> createMerchant(@RequestBody MerchantRegisterDTO dto) {
         return Result.success(merchantService.createMerchant(dto, AppSessionContext.getUserId()));
     }
 }

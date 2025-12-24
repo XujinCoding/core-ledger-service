@@ -15,6 +15,7 @@ import com.coreledger.utils.AppSessionContext;
 import com.coreledger.utils.TokenUtil;
 import com.coreledger.utils.WechatUtil;
 import com.coreledger.vo.auth.LoginVO;
+import com.coreledger.vo.merchant.MerchantVO;
 import com.coreledger.vo.auth.UserIdentitiesVO;
 import com.coreledger.vo.auth.CurrentUserIdentityInfo;
 import lombok.RequiredArgsConstructor;
@@ -104,11 +105,11 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         sysUserRepository.save(user);
 
-        Merchant merchant = merchantService.createMerchant(dto, user.getId());
-        log.info("商户注册成功: userId={}, merchantId={}, phone={}", user.getId(), merchant.getId(), dto.getPhone());
+        MerchantVO merchantVO = merchantService.createMerchant(dto, user.getId());
+        log.info("商户注册成功: userId={}, merchantId={}, phone={}", user.getId(), merchantVO.getId(), dto.getPhone());
 
         // 3. 返回
-        return generateLoginResponse(user, merchant.getId(), null);
+        return generateLoginResponse(user, merchantVO.getId(), null);
     }
 
     /**

@@ -81,4 +81,13 @@ public class CustomerController {
         customerService.deleteCustomer(id);
         return Result.success("删除成功");
     }
+
+    /**
+     * 获取客户总数
+     */
+    @Operation(summary = "获取客户总数", description = "获取当前商户的客户总数")
+    @GetMapping("/count")
+    public Result<Long> getCustomerCount() {
+        return Result.success(customerService.countCustomers());
+    }
 }

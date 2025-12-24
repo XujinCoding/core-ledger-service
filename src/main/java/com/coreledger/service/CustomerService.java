@@ -217,9 +217,12 @@ public class CustomerService {
 
     /**
      * 创建客户（用于商户手动创建或客户注册时）
+     *
+     * @param dto 创建客户DTO
+     * @return 客户VO
      */
     @Transactional
-    public Customer createUnregisteredCustomer(CreateCustomerDTO dto) {
+    public CustomerVO createUnregisteredCustomer(CreateCustomerDTO dto) {
         // 1. 生成客户编号
         String customerNo = generateCustomerNo();
         
@@ -240,7 +243,7 @@ public class CustomerService {
         saveCustomerSnapshot(customer, OperationType.CREATE);
         log.info("创建客户成功: customerId={}, customerNo={}", customer.getId(), customerNo);
         
-        return customer;
+        return toVOWithAddressPath(customer);
     }
 
     /**
@@ -373,6 +376,16 @@ public class CustomerService {
             vo.setMerchantName(merchantMap.get(vo.getMerchantId()));
             return vo;
         }).toList();
+    }
+
+    /**
+     * 获取当前商户的客户总数
+     *
+     * @return 客户总数
+     */
+    public Long countCustomers() {
+        Long merchantId = AppSessionContext.getMerchantId();
+        return customerRepository.countByMerchantId(merchantId);
     }
 
     /**

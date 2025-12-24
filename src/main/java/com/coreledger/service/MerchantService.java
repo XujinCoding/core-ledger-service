@@ -1,10 +1,15 @@
 package com.coreledger.service;
 
+import com.coreledger.common.mapper.merchant.MerchantConverter;
 import com.coreledger.dto.auth.MerchantRegisterDTO;
 import com.coreledger.dto.merchant.UpdateMerchantDTO;
 import com.coreledger.entity.Merchant;
+import com.coreledger.enums.BusinessCode;
 import com.coreledger.enums.Status;
+import com.coreledger.exception.NotFoundException;
 import com.coreledger.repository.MerchantRepository;
+import com.coreledger.repository.SysAddressRepository;
+import com.coreledger.vo.merchant.MerchantVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,12 +33,14 @@ import java.util.Random;
 public class MerchantService {
 
     private final MerchantRepository merchantRepository;
+    private final MerchantConverter merchantConverter;
+    private final SysAddressRepository addressRepository;
 
     /**
      * 创建商户
      */
     @Transactional(rollbackFor = Exception.class)
-    public Merchant createMerchant(MerchantRegisterDTO dto, Long ownerUserId) {
+    public MerchantVO createMerchant(MerchantRegisterDTO dto, Long ownerUserId) {
         // 1. 生成商户编号
         String merchantNo = generateMerchantNo();
         
@@ -54,7 +61,7 @@ public class MerchantService {
         merchant = merchantRepository.save(merchant);
         log.info("创建商户成功: merchantId={}, merchantNo={}", merchant.getId(), merchantNo);
         
-        return merchant;
+        return toVOWithAddressPath(merchant);
     }
 
     /**
@@ -107,12 +114,12 @@ public class MerchantService {
      *
      * @param merchantId 商户ID
      * @param dto 更新信息
-     * @return 更新后的商户
+     * @return 更新后的商户VO
      */
     @Transactional(rollbackFor = Exception.class)
-    public Merchant updateMerchant(Long merchantId, UpdateMerchantDTO dto) {
+    public MerchantVO updateMerchant(Long merchantId, UpdateMerchantDTO dto) {
         Merchant merchant = merchantRepository.findById(merchantId)
-                .orElseThrow(() -> new RuntimeException("商户不存在"));
+                .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
 
         if (dto.getName() != null && !dto.getName().isBlank()) {
             merchant.setName(dto.getName());
@@ -129,6 +136,35 @@ public class MerchantService {
 
         merchant = merchantRepository.save(merchant);
         log.info("更新商户信息成功: merchantId={}", merchantId);
-        return merchant;
+        return toVOWithAddressPath(merchant);
+    }
+
+    /**
+     * 根据ID获取商户VO
+     *
+     * @param merchantId 商户ID
+     * @return 商户VO
+     */
+    public MerchantVO getMerchantVO(Long merchantId) {
+        Merchant merchant = merchantRepository.findById(merchantId)
+                .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
+        return toVOWithAddressPath(merchant);
+    }
+
+    /**
+     * 转换为VO并设置地址路径
+     *
+     * @param merchant 商户实体
+     * @return 商户VO
+     */
+    private MerchantVO toVOWithAddressPath(Merchant merchant) {
+        MerchantVO vo = merchantConverter.toVO(merchant);
+
+        // 查询地址信息并设置完整路径
+        addressRepository.findById(merchant.getAddressId()).ifPresent(address -> {
+            vo.setAddressPath(address.getMergerName());
+        });
+
+        return vo;
     }
 }
