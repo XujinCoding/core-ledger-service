@@ -118,4 +118,10 @@ public class CustomerVO {
      */
     @Schema(description = "商户编号")
     private String merchantNo;
+
+    /**
+     * 备注
+     */
+    @Schema(description = "备注")
+    private String remark;
 }

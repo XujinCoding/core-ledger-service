@@ -27,6 +27,12 @@ public class CreateCustomerDTO {
     private String name;
 
     /**
+     * 别名/昵称
+     */
+    @Schema(description = "别名/昵称", example = "小王")
+    private String alias;
+
+    /**
      * 手机号
      */
     @Schema(description = "手机号", example = "13800138000")
@@ -54,4 +60,10 @@ public class CreateCustomerDTO {
      */
     @Schema(description = "年龄", example = "30")
     private Integer age;
+
+    /**
+     * 备注
+     */
+    @Schema(description = "备注", example = "VIP客户")
+    private String remark;
 }

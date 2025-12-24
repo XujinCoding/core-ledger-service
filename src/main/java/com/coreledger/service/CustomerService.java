@@ -73,7 +73,7 @@ public class CustomerService {
 
         // 2. 如果修改了手机号，校验手机号是否已被其他客户使用
         if (StrUtil.isNotBlank(dto.getPhone()) && !Objects.equals(dto.getPhone(), customer.getPhone())) {
-            customerRepository.findByPhone(dto.getPhone()).ifPresent(existingCustomer -> {
+            customerRepository.findByPhoneAndMerchantId(dto.getPhone(),AppSessionContext.getMerchantId()).ifPresent(existingCustomer -> {
                 if (!Objects.equals(existingCustomer.getId(), id)) {
                     throw new BusinessException(BusinessCode.CUSTOMER_PHONE_EXISTS);
                 }
@@ -220,26 +220,35 @@ public class CustomerService {
      *
      * @param dto 创建客户DTO
      * @return 客户VO
+     * @throws BusinessException 当手机号已被同商户其他客户使用时抛出 (BusinessCode.CUSTOMER_PHONE_EXISTS)
      */
     @Transactional
     public CustomerVO createUnregisteredCustomer(CreateCustomerDTO dto) {
-        // 1. 生成客户编号
+        // 1. 校验手机号是否已被同商户其他客户使用
+        customerRepository.findByPhoneAndMerchantId(dto.getPhone(), dto.getMerchantId())
+                .ifPresent(existingCustomer -> {
+                    throw new BusinessException(BusinessCode.CUSTOMER_PHONE_EXISTS);
+                });
+        
+        // 2. 生成客户编号
         String customerNo = generateCustomerNo();
         
-        // 2. 创建客户
+        // 3. 创建客户
         Customer customer = new Customer();
         customer.setCode(customerNo);
         customer.setMerchantId(dto.getMerchantId());
         customer.setName(dto.getName());
+        customer.setAlias(dto.getAlias());
         customer.setAddressId(dto.getAddressId());
         customer.setPhone(dto.getPhone());
         customer.setAddressDetail(dto.getAddressDetail());
         customer.setGender(dto.getGender());
         customer.setAge(dto.getAge());
+        customer.setMemo(dto.getRemark());
         customer.setIsRegistered(RegisterStatus.UNREGISTERED);
         customer.setStatus(Status.ACTIVE);
         customer = customerRepository.save(customer);
-        // 3. 保存客户快照（创建操作）
+        // 4. 保存客户快照（创建操作）
         saveCustomerSnapshot(customer, OperationType.CREATE);
         log.info("创建客户成功: customerId={}, customerNo={}", customer.getId(), customerNo);
         

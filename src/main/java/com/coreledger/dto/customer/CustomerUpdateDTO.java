@@ -65,4 +65,9 @@ public class CustomerUpdateDTO {
     /** 详细地址 */
     @Schema(name = "详细地址", example = "村")
     private String addressDetail;
+
+    /** 备注 */
+    @Size(max = 500, message = "备注长度不能超过500个字符")
+    @Schema(description = "备注", example = "VIP客户")
+    private String remark;
 }
