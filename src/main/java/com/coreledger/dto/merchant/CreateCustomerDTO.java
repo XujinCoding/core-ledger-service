@@ -24,7 +24,7 @@ public class CreateCustomerDTO {
      * 客户名称
      */
     @Schema(description = "客户名称", example = "王五")
-    private String customerName;
+    private String name;
 
     /**
      * 手机号

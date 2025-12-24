@@ -230,7 +230,7 @@ public class CustomerService {
         Customer customer = new Customer();
         customer.setCode(customerNo);
         customer.setMerchantId(dto.getMerchantId());
-        customer.setName(dto.getCustomerName());
+        customer.setName(dto.getName());
         customer.setAddressId(dto.getAddressId());
         customer.setPhone(dto.getPhone());
         customer.setAddressDetail(dto.getAddressDetail());

@@ -30,14 +30,6 @@ public interface CustomerConverter {
     CustomerVO toVO(Customer entity);
 
     /**
-     * CreateDTO转Entity
-     *
-     * @param dto 创建DTO
-     * @return 实体
-     */
-    Customer toEntity(CustomerCreateDTO dto);
-
-    /**
      * 更新Entity
      *
      * @param dto 更新DTO
