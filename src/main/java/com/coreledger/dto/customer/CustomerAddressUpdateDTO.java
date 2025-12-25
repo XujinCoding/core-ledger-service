@@ -25,7 +25,7 @@ public class CustomerAddressUpdateDTO {
     /**
      * 详细地址
      */
-    @Size(max = 255, message = "详细地址长度不能超过255个字符")
+    @Size(max = 255, message = "详细地址长度不能超过255个字符 ")
     @Schema(description = "详细地址", example = "XX街道XX号")
     private String addressDetail;
 }
