@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coreledger.mapper.LedgerMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="LedgerListVOMap" type="com.coreledger.vo.LedgerListVO">
+        <id property="id" column="id"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="ledgerStatus" column="ledger_status"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="paidAmount" column="paid_amount"/>
+        <result property="discountAmount" column="discount_amount"/>
+        <result property="remainingAmount" column="remaining_amount"/>
+        <result property="createInstant" column="create_instant"/>
+    </resultMap>
+
+    <!-- 搜索账单列表（连表查询） -->
+    <select id="searchLedgers" resultMap="LedgerListVOMap">
+        SELECT
+            l.id,
+            l.customer_id,
+            c.name AS customer_name,
+            l.merchant_id,
+            l.ledger_status,
+            l.total_amount,
+            l.paid_amount,
+            l.discount_amount,
+            l.total_amount-l.paid_amount-l.discount_amount AS remaining_amount,
+            l.create_instant,
+            l.modify_instant
+        FROM ledger l
+        LEFT JOIN customer c ON l.customer_id = c.id
+        <where>
+            <if test="dto.customerName != null and dto.customerName != ''">
+                AND c.name LIKE CONCAT('%', #{dto.customerName}, '%')
+            </if>
+            <if test="dto.customerPhone != null and dto.customerPhone != ''">
+                AND c.phone LIKE CONCAT('%', #{dto.customerPhone}, '%')
+            </if>
+            <if test="dto.ledgerStatus != null">
+                AND l.ledger_status = #{dto.ledgerStatus.value}
+            </if>
+        </where>
+        ORDER BY l.create_instant DESC
+    </select>
+
+</mapper>

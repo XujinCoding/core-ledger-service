@@ -1,6 +1,7 @@
 package com.coreledger.service;
 
 import cn.hutool.core.collection.CollUtil;
+import com.coreledger.common.PageQueryResult;
 import com.coreledger.common.mapper.ledger.LedgerConverter;
 import com.coreledger.common.mapper.ledger.LedgerItemConverter;
 import com.coreledger.common.mapper.ledger.PaymentRecordConverter;
@@ -16,12 +17,15 @@ import com.coreledger.enums.PaymentMethod;
 import com.coreledger.enums.Status;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
+import com.coreledger.mapper.LedgerMapper;
 import com.coreledger.repository.CustomerRepository;
 import com.coreledger.repository.LedgerRepository;
 import com.coreledger.repository.LedgerItemRepository;
 import com.coreledger.repository.PaymentRecordRepository;
 import com.coreledger.utils.specification.PredicateBuilder;
 import com.coreledger.vo.LedgerVO;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -57,6 +61,7 @@ public class LedgerService {
     private final LedgerConverter ledgerConverter;
     private final LedgerItemConverter ledgerItemConverter;
     private final PaymentRecordConverter paymentRecordConverter;
+    private final LedgerMapper ledgerMapper;
 
     /**
      * 新增账单
@@ -346,6 +351,20 @@ public class LedgerService {
 
         // 批量查询客户信息
         return fillLedgerInfo(ledgerPage);
+    }
+
+    /**
+     * 搜索账单列表（MyBatis连表查询，支持客户姓名和电话模糊查询）
+     *
+     * @param condition 搜索条件
+     * @return 分页账单列表
+     */
+    public PageQueryResult<LedgerListVO> searchLedgers(LedgerSearchDTO condition) {
+        try (var page = PageHelper.startPage(condition.getPageNumber(), condition.getPageSize())) {
+            List<LedgerListVO> list = ledgerMapper.searchLedgers(condition);
+            PageInfo<LedgerListVO> result = new PageInfo<>(list);
+            return new PageQueryResult<>(list,result.getPages(), result.getTotal());
+        }
     }
 
     /**

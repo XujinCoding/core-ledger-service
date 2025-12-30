@@ -81,6 +81,7 @@ wechat:
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: com.coreledger.entity
+  type-handlers-package: com.coreledger.config.typehandler
   configuration:
     map-underscore-to-camel-case: true
     default-fetch-size: 100

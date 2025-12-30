@@ -1,5 +1,6 @@
 package com.coreledger.controller;
 
+import com.coreledger.common.PageQueryResult;
 import com.coreledger.common.Result;
 import com.coreledger.dto.ledger.*;
 import com.coreledger.service.LedgerService;
@@ -152,6 +153,18 @@ public class LedgerController {
             @PageableDefault(size = 20, sort = "createInstant", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return Result.success(ledgerService.queryInProgressLedgers(pageable));
+    }
+
+    /**
+     * 搜索账单列表（支持客户姓名和电话模糊查询）
+     *
+     * @param dto 搜索条件
+     * @return 分页账单列表
+     */
+    @GetMapping("/search")
+    @Operation(summary = "搜索账单列表", description = "支持按客户姓名、电话模糊查询和状态过滤")
+    public Result<PageQueryResult<LedgerListVO>> searchLedgers(LedgerSearchDTO dto) {
+        return Result.success(ledgerService.searchLedgers(dto));
     }
 
     /**
