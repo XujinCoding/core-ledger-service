@@ -26,8 +26,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import com.coreledger.vo.product.ProductSkuVO;
 
 /**
  * 商品业务服务类
@@ -159,6 +161,25 @@ public class ProductService {
             .map(this::toDetailVO);
     }
 
+
+    /**
+     * 获取商品SKU列表
+     *
+     * @param productId 商品ID
+     * @return SKU列表
+     * @throws NotFoundException 当商品不存在时抛出
+     */
+    public List<ProductSkuVO> getProductSkus(Long productId) {
+        // 验证商品是否存在
+        if (!productRepository.existsById(productId)) {
+            throw new NotFoundException(BusinessCode.PRODUCT_NOT_FOUND);
+        }
+        
+        return productSkuRepository.findByProductIdAndStatusOrderBySortOrderAsc(productId, Status.ACTIVE)
+            .stream()
+            .map(productSkuConverter::toVO)
+            .collect(Collectors.toList());
+    }
 
     /**
      * 转换为详细VO（含属性和SKU）

@@ -1,17 +1,11 @@
 package com.coreledger.controller;
 
 import com.coreledger.common.Result;
-import com.coreledger.dto.product.ProductAttrBatchUpdateDTO;
-import com.coreledger.dto.product.ProductAttrCreateDTO;
-import com.coreledger.dto.product.ProductAttrValueCreateDTO;
 import com.coreledger.dto.product.ProductCreateDTO;
 import com.coreledger.dto.product.ProductUpdateDTO;
-import com.coreledger.enums.Status;
-import com.coreledger.service.ProductAttrService;
 import com.coreledger.service.ProductService;
-import com.coreledger.vo.product.ProductAttrVO;
-import com.coreledger.vo.product.ProductAttrValueVO;
 import com.coreledger.vo.product.ProductVO;
+import com.coreledger.vo.product.ProductSkuVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -90,8 +84,13 @@ public class ProductController {
         return Result.success(productService.listProducts(categoryId, keyword, pageable));
     }
 
-    // ==================== 商品属性管理 ====================
-
-
+    /**
+     * 获取商品SKU列表
+     */
+    @Operation(summary = "获取商品SKU列表", description = "获取指定商品的所有SKU")
+    @GetMapping("/{id}/skus")
+    public Result<List<ProductSkuVO>> getProductSkus(@PathVariable Long id) {
+        return Result.success(productService.getProductSkus(id));
+    }
 
 }

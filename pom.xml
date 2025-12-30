@@ -150,13 +150,14 @@
             <version>${jetbrains-annotations.version}</version>
         </dependency>
 
-        <!-- Spring Boot DevTools -->
+        <!-- Spring Boot DevTools (已禁用热部署)
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+        -->
 
         <!-- Spring Boot Test -->
         <dependency>
