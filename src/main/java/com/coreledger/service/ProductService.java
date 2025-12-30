@@ -13,6 +13,7 @@ import com.coreledger.entity.ProductCategory;
 import com.coreledger.enums.BusinessCode;
 import com.coreledger.enums.Status;
 import com.coreledger.exception.NotFoundException;
+import com.coreledger.mapper.ProductCategoryMapper;
 import com.coreledger.repository.ProductRepository;
 import com.coreledger.repository.ProductCategoryRepository;
 import com.coreledger.repository.ProductAttrRepository;
@@ -45,6 +46,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductCategoryRepository productCategoryRepository;
+    private final ProductCategoryMapper productCategoryMapper;
     private final ProductAttrRepository productAttrRepository;
     private final ProductSkuRepository productSkuRepository;
     private final ProductConverter productConverter;
@@ -151,9 +153,16 @@ public class ProductService {
      * @return 商品列表
      */
     public Page<ProductVO> listProducts(Long categoryId, String keyword, Pageable pageable) {
+        // 根据分类ID递归获取所有子分类ID
+        List<Long> categoryIds = null;
+        if (categoryId != null) {
+            categoryIds = productCategoryMapper.findAllCategoryIdsRecursive(categoryId, Status.ACTIVE.getValue());
+        }
+
+        final List<Long> finalCategoryIds = categoryIds;
         Specification<Product> spec = PredicateBuilder.<Product>and()
             .equal("status", Status.ACTIVE)
-            .equal(Objects::nonNull, "categoryId", categoryId)
+            .in("categoryId", finalCategoryIds)
             .like(StrUtil::isNotBlank, "name", keyword)
             .build();
 
