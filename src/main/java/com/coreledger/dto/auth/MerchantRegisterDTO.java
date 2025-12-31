@@ -3,6 +3,7 @@ package com.coreledger.dto.auth;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
@@ -28,6 +29,14 @@ public class MerchantRegisterDTO {
     @NotBlank(message = "手机号不能为空")
     @Schema(description = "手机号", example = "13800138000")
     private String phone;
+
+    /**
+     * 短信验证码
+     */
+    @NotBlank(message = "验证码不能为空")
+    @Pattern(regexp = "^\\d{4,6}$", message = "验证码格式不正确")
+    @Schema(description = "短信验证码", required = true, example = "123456")
+    private String smsCode;
 
     /**
      * 用户名

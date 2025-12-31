@@ -52,6 +52,7 @@ public class AuthService {
     private final TokenUtil tokenUtil;
     private final MerchantService merchantService;
     private final CustomerService customerService;
+    private final SmsService smsService;
     private final StringRedisTemplate stringRedisTemplate;;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -95,10 +96,13 @@ public class AuthService {
      */
     @Transactional(rollbackFor = Exception.class)
     public LoginVO merchantWechatRegister(MerchantRegisterDTO dto) {
-        // 1. 校验
+        // 1. 校验验证码
+        smsService.verifySmsCode(dto.getPhone(), dto.getSmsCode(), SmsScene.MERCHANT_REGISTER);
+
+        // 2. 校验
         validateMerchantRegister(dto);
 
-        // 2. 获取数据
+        // 3. 获取数据
         String openid = validateWechatLogin(dto.getCode());
         SysUser user = getOrCreateUser(openid);
         user.setUsername(dto.getUsername());
@@ -108,7 +112,7 @@ public class AuthService {
         MerchantVO merchantVO = merchantService.createMerchant(dto, user.getId());
         log.info("商户注册成功: userId={}, merchantId={}, phone={}", user.getId(), merchantVO.getId(), dto.getPhone());
 
-        // 3. 返回
+        // 4. 返回
         return generateLoginResponse(user, merchantVO.getId(), null);
     }
 
@@ -117,6 +121,9 @@ public class AuthService {
      */
     @Transactional(rollbackFor = Exception.class)
     public LoginVO customerWechatRegister(CustomerRegisterDTO dto) {
+        // 1. 校验验证码
+        smsService.verifySmsCode(dto.getPhone(), dto.getSmsCode(), SmsScene.CUSTOMER_REGISTER);
+
         String openId = validateWechatLogin(dto.getCode());
 
         // 2. 获取数据

@@ -36,6 +36,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/addresses/**",    // 排除微信登录
                         "/api/auth/merchant/wechat/register",    // 排除商户注册
                         "/api/auth/customer/wechat/register",    // 排除客户注册
+                        "/api/sms/send",    // 排除客户注册
                         "/api/auth/register",        // 排除注册
                         "/api/auth/login",           // 排除登录
                         "/api/doc.html",             // 排除 Knife4j 文档
