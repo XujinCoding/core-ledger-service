@@ -19,6 +19,7 @@ import com.coreledger.repository.MerchantRepository;
 import com.coreledger.repository.SysAddressRepository;
 import com.coreledger.utils.AppSessionContext;
 import com.coreledger.utils.specification.PredicateBuilder;
+import com.coreledger.vo.customer.CustomerListStatsVO;
 import com.coreledger.vo.customer.CustomerStatsVO;
 import com.coreledger.vo.customer.CustomerVO;
 import lombok.RequiredArgsConstructor;
@@ -395,6 +396,32 @@ public class CustomerService {
     public Long countCustomers() {
         Long merchantId = AppSessionContext.getMerchantId();
         return customerRepository.countByMerchantId(merchantId);
+    }
+
+    /**
+     * 获取客户列表统计（支持与搜索相同的条件）
+     *
+     * @param dto 搜索条件
+     * @return 客户列表统计VO
+     */
+    public CustomerListStatsVO getCustomerListStats(CustomerSearchDTO dto) {
+        log.info("获取客户列表统计，条件: {}", dto);
+        
+        List<Long> addressIds = new ArrayList<>();
+        if (dto.getAddressId() != null) {
+            addressIds = addressService.getAllChildAddressIds(dto.getAddressId());
+            addressIds.add(dto.getAddressId());
+        }
+        
+        Specification<Customer> spec = PredicateBuilder.<Customer>and()
+                .like(StrUtil::isNotBlank, "name", dto.getName())
+                .like(StrUtil::isNotBlank, "phone", dto.getPhone())
+                .equal("merchantId", AppSessionContext.getMerchantId())
+                .in("addressId", addressIds)
+                .build();
+        
+        long count = customerRepository.count(spec);
+        return new CustomerListStatsVO(count);
     }
 
     /**

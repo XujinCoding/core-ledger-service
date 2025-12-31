@@ -4,6 +4,7 @@ import com.coreledger.common.Result;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
 import com.coreledger.service.CustomerService;
+import com.coreledger.vo.customer.CustomerListStatsVO;
 import com.coreledger.vo.customer.CustomerStatsVO;
 import com.coreledger.vo.customer.CustomerVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,5 +90,14 @@ public class CustomerController {
     @GetMapping("/count")
     public Result<Long> getCustomerCount() {
         return Result.success(customerService.countCustomers());
+    }
+
+    /**
+     * 获取客户列表统计（支持与搜索相同的条件）
+     */
+    @Operation(summary = "获取客户列表统计", description = "获取客户列表的统计数据，支持与搜索相同的条件")
+    @GetMapping("/stats")
+    public Result<CustomerListStatsVO> getCustomerListStats(CustomerSearchDTO dto) {
+        return Result.success(customerService.getCustomerListStats(dto));
     }
 }

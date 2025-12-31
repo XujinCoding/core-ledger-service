@@ -6,6 +6,7 @@ import com.coreledger.common.mapper.ledger.LedgerConverter;
 import com.coreledger.common.mapper.ledger.LedgerItemConverter;
 import com.coreledger.common.mapper.ledger.PaymentRecordConverter;
 import com.coreledger.dto.ledger.*;
+import com.coreledger.vo.LedgerListStatsVO;
 import com.coreledger.vo.LedgerListVO;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.Ledger;
@@ -441,6 +442,17 @@ public class LedgerService {
                 .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
 
         return buildLedgerVO(ledger, customer.getName());
+    }
+
+    /**
+     * 获取账单列表统计数据（支持与搜索相同的条件）
+     *
+     * @param dto 搜索条件
+     * @return 账单列表统计VO
+     */
+    public LedgerListStatsVO getLedgerListStats(LedgerSearchDTO dto) {
+        log.info("获取账单列表统计，条件: {}", dto);
+        return ledgerMapper.statsLedgers(dto);
     }
 
     /**

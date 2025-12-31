@@ -15,6 +15,14 @@
         <result property="createInstant" column="create_instant"/>
     </resultMap>
 
+    <!-- 统计结果映射 -->
+    <resultMap id="LedgerListStatsVOMap" type="com.coreledger.vo.LedgerListStatsVO">
+        <result property="totalAmount" column="total_amount"/>
+        <result property="paidAmount" column="paid_amount"/>
+        <result property="pendingAmount" column="pending_amount"/>
+        <result property="ledgerCount" column="ledger_count"/>
+    </resultMap>
+
     <!-- 搜索账单列表（连表查询） -->
     <select id="searchLedgers" resultMap="LedgerListVOMap">
         SELECT
@@ -43,6 +51,32 @@
             </if>
         </where>
         ORDER BY l.create_instant DESC
+    </select>
+
+    <!-- 统计账单列表 -->
+    <select id="statsLedgers" resultMap="LedgerListStatsVOMap">
+        SELECT
+            COALESCE(SUM(l.total_amount), 0) AS total_amount,
+            COALESCE(SUM(l.paid_amount), 0) AS paid_amount,
+            COALESCE(SUM(
+                CASE WHEN l.ledger_status IN (1, 2, 4) 
+                THEN l.total_amount - l.paid_amount - l.discount_amount 
+                ELSE 0 END
+            ), 0) AS pending_amount,
+            COUNT(l.id) AS ledger_count
+        FROM ledger l
+        LEFT JOIN customer c ON l.customer_id = c.id
+        <where>
+            <if test="dto.customerName != null and dto.customerName != ''">
+                AND c.name LIKE CONCAT('%', #{dto.customerName}, '%')
+            </if>
+            <if test="dto.customerPhone != null and dto.customerPhone != ''">
+                AND c.phone LIKE CONCAT('%', #{dto.customerPhone}, '%')
+            </if>
+            <if test="dto.ledgerStatus != null">
+                AND l.ledger_status = #{dto.ledgerStatus.value}
+            </if>
+        </where>
     </select>
 
 </mapper>

@@ -4,6 +4,7 @@ import com.coreledger.common.PageQueryResult;
 import com.coreledger.common.Result;
 import com.coreledger.dto.ledger.*;
 import com.coreledger.service.LedgerService;
+import com.coreledger.vo.LedgerListStatsVO;
 import com.coreledger.vo.LedgerListVO;
 import com.coreledger.vo.LedgerVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -194,5 +195,17 @@ public class LedgerController {
     @Operation(summary = "查询账单详情", description = "获取账单完整信息，包括明细和支付记录")
     public Result<LedgerVO> getLedgerDetail(@PathVariable Long id) {
         return Result.success(ledgerService.getLedgerDetail(id));
+    }
+
+    /**
+     * 获取账单列表统计数据
+     *
+     * @param dto 搜索条件（与搜索接口相同）
+     * @return 账单列表统计VO
+     */
+    @GetMapping("/stats")
+    @Operation(summary = "获取账单列表统计", description = "获取账单列表的统计数据，支持与搜索相同的条件")
+    public Result<LedgerListStatsVO> getLedgerListStats(LedgerSearchDTO dto) {
+        return Result.success(ledgerService.getLedgerListStats(dto));
     }
 }
