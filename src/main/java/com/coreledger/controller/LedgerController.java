@@ -109,6 +109,23 @@ public class LedgerController {
     }
 
     /**
+     * 修改账单备注
+     *
+     * @param id 账单ID
+     * @param dto 修改备注DTO
+     * @return 账单VO
+     */
+    @PatchMapping("/{id}/memo")
+    @Operation(summary = "修改账单备注", description = "修改账单的备注信息")
+    public Result<LedgerVO> updateLedgerMemo(
+        @PathVariable Long id,
+        @Valid @RequestBody UpdateLedgerMemoDTO dto
+    ) {
+        ledgerService.updateLedgerMemo(id, dto);
+        return Result.success();
+    }
+
+    /**
      * 关闭账单
      *
      * @param id 账单ID

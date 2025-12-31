@@ -297,6 +297,25 @@ public class LedgerService {
     }
 
     /**
+     * 修改账单备注
+     *
+     * @param ledgerId 账单ID
+     * @param dto      修改备注DTO
+     * @return 账单VO
+     * @throws NotFoundException 当账单不存在时
+     */
+    @Transactional
+    public void updateLedgerMemo(Long ledgerId, UpdateLedgerMemoDTO dto) {
+        log.info("修改账单备注，账单ID: {}", ledgerId);
+
+        Ledger ledger = getLedgerById(ledgerId);
+        ledger.setMemo(dto.getMemo());
+        ledgerRepository.save(ledger);
+
+        log.info("账单备注修改完成，账单ID: {}", ledgerId);
+    }
+
+    /**
      * 关闭账单
      *
      * @param ledgerId 账单ID

@@ -49,6 +49,9 @@ public class LedgerVO {
     /** 支付记录列表 */
     private List<PaymentRecordVO> paymentRecords;
 
+    /** 备注 */
+    private String memo;
+
     /** 创建时间 */
     private LocalDateTime createInstant;
 
