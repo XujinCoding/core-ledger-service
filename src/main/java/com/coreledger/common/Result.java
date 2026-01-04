@@ -90,17 +90,6 @@ public class Result<T> implements Serializable {
     }
 
     /**
-     * 成功响应（自定义消息）
-     *
-     * @param message 响应消息
-     * @param <T> 数据类型
-     * @return 响应结果
-     */
-    public static <T> Result<T> success(String message) {
-        return new Result<>(BusinessCode.SUCCESS.getCode(), message, null);
-    }
-
-    /**
      * 成功响应（自定义消息和数据）
      *
      * @param message 响应消息

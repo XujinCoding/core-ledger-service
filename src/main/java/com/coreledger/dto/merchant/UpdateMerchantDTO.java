@@ -1,6 +1,7 @@
 package com.coreledger.dto.merchant;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -24,4 +25,8 @@ public class UpdateMerchantDTO {
 
     @Schema(description = "详细地址")
     private String addressDetail;
+
+    @Size(max = 500, message = "头像URL长度不能超过500个字符")
+    @Schema(description = "商户头像URL")
+    private String avatarUrl;
 }

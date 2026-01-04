@@ -246,6 +246,7 @@ public class CustomerService {
         customer.setGender(dto.getGender());
         customer.setAge(dto.getAge());
         customer.setMemo(dto.getRemark());
+        customer.setAvatarUrl(dto.getAvatarUrl());
         customer.setIsRegistered(RegisterStatus.UNREGISTERED);
         customer.setStatus(Status.ACTIVE);
         customer = customerRepository.save(customer);

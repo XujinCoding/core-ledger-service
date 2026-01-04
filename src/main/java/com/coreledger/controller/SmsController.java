@@ -28,7 +28,7 @@ public class SmsController {
     @PostMapping("/send")
     public Result<Void> sendSmsCode(@Valid @RequestBody SendSmsDTO dto) {
         smsService.sendSmsCode(dto.getPhone(), dto.getScene());
-        return Result.success("验证码发送成功");
+        return Result.success();
     }
 
     /**

@@ -60,7 +60,7 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public Result<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
-        return Result.success("删除成功");
+        return Result.success();
     }
 
     /**

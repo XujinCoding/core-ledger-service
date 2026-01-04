@@ -35,6 +35,7 @@ public class MerchantService {
     private final MerchantRepository merchantRepository;
     private final MerchantConverter merchantConverter;
     private final SysAddressRepository addressRepository;
+    private final QrCodeService qrCodeService;
 
     /**
      * 创建商户
@@ -56,7 +57,12 @@ public class MerchantService {
         merchant.setPhone(dto.getPhone());
         merchant.setAddressId(dto.getAddressId());
         merchant.setAddressDetail(dto.getAddressDetail());
+        merchant.setAvatarUrl(dto.getAvatarUrl());
         merchant.setStatus(Status.ACTIVE);  // 默认启用
+        
+        // 4. 生成并上传二维码
+        String qrCodeUrl = qrCodeService.generateAndUploadQrCode(inviteCode);
+        merchant.setQrCodeUrl(qrCodeUrl);
         
         merchant = merchantRepository.save(merchant);
         log.info("创建商户成功: merchantId={}, merchantNo={}", merchant.getId(), merchantNo);
@@ -132,6 +138,9 @@ public class MerchantService {
         }
         if (dto.getAddressDetail() != null) {
             merchant.setAddressDetail(dto.getAddressDetail());
+        }
+        if (dto.getAvatarUrl() != null) {
+            merchant.setAvatarUrl(dto.getAvatarUrl());
         }
 
         merchant = merchantRepository.save(merchant);

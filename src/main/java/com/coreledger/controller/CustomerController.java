@@ -80,7 +80,7 @@ public class CustomerController {
     @DeleteMapping("/{id}")
     public Result<Void> deleteCustomer(@PathVariable Long id) {
         customerService.deleteCustomer(id);
-        return Result.success("删除成功");
+        return Result.success();
     }
 
     /**

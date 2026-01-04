@@ -119,3 +119,20 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
 
+# SMS Configuration
+sms:
+  api-url: https://push.spug.cc/send/Dn6ywmOPAMj17lod
+  expire-minutes: 5
+  daily-limit: 10
+  interval-seconds: 60
+  verify-max-attempts: 3
+
+# GitHub Image Hosting Configuration
+github:
+  owner: XujinCoding
+  repo: core-ledger-image
+  branch: main
+  token: ${GITHUB_TOKEN}
+  path: images/
+  name: core-ledger
+  email: core-ledger@gmail.com

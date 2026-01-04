@@ -61,7 +61,7 @@ public class ProductCategoryController {
     @DeleteMapping("/{id}")
     public Result<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
-        return Result.success("删除成功");
+        return Result.success();
     }
 
     /**

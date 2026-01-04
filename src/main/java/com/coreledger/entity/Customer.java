@@ -75,6 +75,10 @@ public class Customer extends BaseEntity {
     @Column(name = "address_detail", length = 255)
     private String addressDetail;
 
+    /** 客户头像URL */
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     /** 客户类型：TEMPLATE=模板客户，FORMAL=正式客户 */
     @Column(name = "customer_type", nullable = false)
     @Convert(converter = CustomerTypeConverter.class)

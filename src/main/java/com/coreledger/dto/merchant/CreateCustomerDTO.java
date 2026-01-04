@@ -66,4 +66,10 @@ public class CreateCustomerDTO {
      */
     @Schema(description = "备注", example = "VIP客户")
     private String remark;
+
+    /**
+     * 客户头像URL
+     */
+    @Schema(description = "客户头像URL")
+    private String avatarUrl;
 }

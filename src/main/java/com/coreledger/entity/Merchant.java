@@ -40,6 +40,10 @@ public class Merchant extends BaseEntity {
     @Column(name = "qr_code_url", length = 500)
     private String qrCodeUrl;
 
+    /** 商户头像/Logo URL */
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     /** 手机号 */
     @Column(name = "phone", nullable = false, length = 20)
     private String phone;

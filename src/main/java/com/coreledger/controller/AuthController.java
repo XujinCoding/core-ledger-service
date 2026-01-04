@@ -58,7 +58,7 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<Void> logout(@RequestHeader(value = "Authorization", required = false) String token) {
         authService.logout(token);
-        return Result.success("登出成功");
+        return Result.success();
     }
 
     /**

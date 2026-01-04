@@ -70,4 +70,9 @@ public class CustomerUpdateDTO {
     @Size(max = 500, message = "备注长度不能超过500个字符")
     @Schema(description = "备注", example = "VIP客户")
     private String remark;
+
+    /** 客户头像URL */
+    @Size(max = 500, message = "头像URL长度不能超过500个字符")
+    @Schema(description = "客户头像URL")
+    private String avatarUrl;
 }

@@ -40,7 +40,6 @@ public class FileUploadService {
             // 1. 读取文件并转为 Base64
             InputStream inputStream = file.getInputStream();
             byte[] fileBytes = inputStream.readAllBytes();
-            String fileBase64 = Base64.getEncoder().encodeToString(fileBytes);
 
             // 2. 生成唯一文件名
             String originalFilename = file.getOriginalFilename();
@@ -49,9 +48,29 @@ public class FileUploadService {
                     : ".png";
             String fileName = UUID.randomUUID().toString().replace("-", "") + extension;
 
-            // 3. 构建请求参数
+            // 3. 上传
+            return uploadBytes(fileBytes, fileName);
+        } catch (IOException e) {
+            log.error("读取文件失败", e);
+            throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "读取文件失败");
+        }
+    }
+
+    /**
+     * 上传字节数组到 GitHub
+     *
+     * @param fileBytes 文件字节数组
+     * @param fileName  文件名
+     * @return 图片访问 URL
+     */
+    public String uploadBytes(byte[] fileBytes, String fileName) {
+        try {
+            // 1. 转为 Base64
+            String fileBase64 = Base64.getEncoder().encodeToString(fileBytes);
+
+            // 2. 构建请求参数
             JSONObject param = new JSONObject();
-            param.set("message", "upload image: " + fileName);
+            param.set("message", "upload: " + fileName);
             param.set("content", fileBase64);
             param.set("branch", gitHubConfig.getBranch());
 
@@ -60,14 +79,14 @@ public class FileUploadService {
             committer.set("email", gitHubConfig.getEmail());
             param.set("committer", committer);
 
-            // 4. 构建请求 URL
+            // 3. 构建请求 URL
             String url = String.format(GITHUB_API_URL,
                     gitHubConfig.getOwner(),
                     gitHubConfig.getRepo(),
                     gitHubConfig.getPath(),
                     fileName);
 
-            // 5. 发起 PUT 请求
+            // 4. 发起 PUT 请求
             HttpResponse response = HttpRequest.put(url)
                     .header("Accept", "application/vnd.github+json")
                     .header("Authorization", "token " + gitHubConfig.getToken())
@@ -82,20 +101,17 @@ public class FileUploadService {
                 JSONObject jsonObject = JSONUtil.parseObj(response.body());
                 JSONObject content = jsonObject.getJSONObject("content");
                 String downloadUrl = content.getStr("download_url");
-                log.info("图片上传成功: {}", downloadUrl);
+                log.info("文件上传成功: {}", downloadUrl);
                 return downloadUrl;
             } else {
                 log.error("GitHub 上传失败: {}", response.body());
-                throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "图片上传失败");
+                throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "文件上传失败");
             }
-        } catch (IOException e) {
-            log.error("读取文件失败", e);
-            throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "读取文件失败");
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("图片上传异常", e);
-            throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "图片上传失败: " + e.getMessage());
+            log.error("文件上传异常", e);
+            throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "文件上传失败: " + e.getMessage());
         }
     }
 }

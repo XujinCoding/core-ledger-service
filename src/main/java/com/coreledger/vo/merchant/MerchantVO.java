@@ -86,4 +86,10 @@ public class MerchantVO {
      */
     @Schema(description = "修改时间")
     private LocalDateTime modifyInstant;
+
+    /**
+     * 商户头像URL
+     */
+    @Schema(description = "商户头像URL")
+    private String avatarUrl;
 }

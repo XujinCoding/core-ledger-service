@@ -124,4 +124,10 @@ public class CustomerVO {
      */
     @Schema(description = "备注")
     private String remark;
+
+    /**
+     * 客户头像URL
+     */
+    @Schema(description = "客户头像URL")
+    private String avatarUrl;
 }
