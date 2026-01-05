@@ -143,6 +143,18 @@
             <version>${hutool.version}</version>
         </dependency>
 
+        <!-- ZXing for QR Code (Hutool QrCode dependency) -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.2</version>
+        </dependency>
+
         <!-- JetBrains Annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>
