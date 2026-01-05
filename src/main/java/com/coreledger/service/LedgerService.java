@@ -567,8 +567,8 @@ public class LedgerService {
      */
     private void validateSettleLedger(Ledger ledger, SettleLedgerDTO dto) {
         // 校验账单状态（进行中或赊账中可以结账）
-        if (!LedgerStatus.IN_PROGRESS.equals(ledger.getLedgerStatus())
-                && !LedgerStatus.ON_CREDIT.equals(ledger.getLedgerStatus())) {
+        if (LedgerStatus.CLEARED.equals(ledger.getLedgerStatus())
+                || LedgerStatus.CLOSED.equals(ledger.getLedgerStatus())) {
             throw new BusinessException(BusinessCode.LEDGER_STATUS_NOT_ALLOWED);
         }
 
