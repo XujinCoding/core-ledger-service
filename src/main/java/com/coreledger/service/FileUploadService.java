@@ -86,7 +86,6 @@ public class FileUploadService {
                     gitHubConfig.getPath(),
                     fileName);
 
-            log.info("url: "+ url+ "token: "+gitHubConfig.getToken());
             // 4. 发起 PUT 请求
             HttpResponse response = HttpRequest.put(url)
                     .header("Accept", "application/vnd.github+json")

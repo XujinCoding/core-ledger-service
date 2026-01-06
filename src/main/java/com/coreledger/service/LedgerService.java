@@ -124,9 +124,13 @@ public class LedgerService {
 
         // 1. 查询账单
         Ledger ledger = getLedgerById(ledgerId);
-
+        // 如果赊账中编辑, 那状态还是赊账中
+        // 如果部分收款编辑, 那还是部分收款
+        // 如果进行中编辑, 那还是进行中
+        // 已关闭和已结清状态, 不允许编辑
         // 2. 校验账单状态
-        if (!LedgerStatus.IN_PROGRESS.equals(ledger.getLedgerStatus())) {
+        if (LedgerStatus.CLOSED.equals(ledger.getLedgerStatus())
+                ||LedgerStatus.CLEARED.equals(ledger.getLedgerStatus())) {
             throw new BusinessException(BusinessCode.LEDGER_STATUS_NOT_ALLOWED);
         }
 
@@ -223,7 +227,7 @@ public class LedgerService {
             ledger.setPaidAmount(ledger.getPaidAmount().add(dto.getPaymentAmount()));
         }
 
-        updateLedgerStatusAfterPayment(ledger);
+        updateLedgerStatusAfterRecord(ledger);
         ledgerRepository.save(ledger);
 
         // 返回
@@ -627,6 +631,28 @@ public class LedgerService {
      * @param ledger 账单实体
      */
     private void updateLedgerStatusAfterPayment(Ledger ledger) {
+        BigDecimal remaining = ledger.getTotalAmount()
+                .subtract(ledger.getPaidAmount())
+                .subtract(ledger.getDiscountAmount());
+
+        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+            // 已结清
+            ledger.setLedgerStatus(LedgerStatus.CLEARED);
+            log.info("账单已结清，账单ID: {}", ledger.getId());
+        } else if (ledger.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+            // 有支付记录但未结清，状态为赊账中
+            ledger.setLedgerStatus(LedgerStatus.PARTIAL);
+            log.info("账单部分付款，账单ID: {}, 剩余: {}", ledger.getId(), remaining);
+        }
+    }
+
+
+    /**
+     * 根据支付金额自动更新账单状态
+     *
+     * @param ledger 账单实体
+     */
+    private void updateLedgerStatusAfterRecord(Ledger ledger) {
         BigDecimal remaining = ledger.getTotalAmount()
                 .subtract(ledger.getPaidAmount())
                 .subtract(ledger.getDiscountAmount());
