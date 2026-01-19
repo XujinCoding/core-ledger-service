@@ -52,6 +52,7 @@ public class ProductService {
     private final ProductConverter productConverter;
     private final ProductAttrConverter productAttrConverter;
     private final ProductSkuConverter productSkuConverter;
+    private final FileUploadService fileUploadService;
 
     /**
      * 创建商品
@@ -203,6 +204,12 @@ public class ProductService {
         productCategoryRepository.findById(product.getCategoryId())
             .ifPresent(category -> vo.setCategoryName(category.getName()));
         
+        // 将imageUrl（文件路径）转换为预签名URL
+        if (vo.getImageUrl() != null && !vo.getImageUrl().isEmpty()) {
+            String presignedUrl = fileUploadService.generatePresignedUrl(vo.getImageUrl());
+            vo.setImageUrl(presignedUrl);
+        }
+        
         // 加载属性列表
         vo.setAttrs(
             productAttrRepository.findByProductIdAndStatusOrderBySortOrderAsc(product.getId(), Status.ACTIVE)
@@ -211,11 +218,19 @@ public class ProductService {
                 .collect(Collectors.toList())
         );
         
-        // 加载SKU列表
+        // 加载SKU列表并转换图片URL
         vo.setSkus(
             productSkuRepository.findByProductIdAndStatusOrderBySortOrderAsc(product.getId(), Status.ACTIVE)
                 .stream()
-                .map(productSkuConverter::toVO)
+                .map(sku -> {
+                    ProductSkuVO skuVO = productSkuConverter.toVO(sku);
+                    // 将SKU的imageUrl（文件路径）转换为预签名URL
+                    if (skuVO.getImageUrl() != null && !skuVO.getImageUrl().isEmpty()) {
+                        String presignedUrl = fileUploadService.generatePresignedUrl(skuVO.getImageUrl());
+                        skuVO.setImageUrl(presignedUrl);
+                    }
+                    return skuVO;
+                })
                 .collect(Collectors.toList())
         );
         

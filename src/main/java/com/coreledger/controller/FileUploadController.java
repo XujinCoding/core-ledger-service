@@ -2,6 +2,7 @@ package com.coreledger.controller;
 
 import com.coreledger.common.Result;
 import com.coreledger.service.FileUploadService;
+import com.coreledger.vo.file.FileUploadVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +23,10 @@ public class FileUploadController {
     /**
      * 上传图片
      */
-    @Operation(summary = "上传图片", description = "上传图片到 GitHub 图床，返回图片访问 URL")
+    @Operation(summary = "上传图片", description = "上传图片到腾讯云COS，返回文件路径和预览URL")
     @PostMapping("/upload/image")
-    public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
-        String url = fileUploadService.uploadImage(file);
-        return Result.success(url);
+    public Result<FileUploadVO> uploadImage(@RequestParam("file") MultipartFile file) {
+        FileUploadVO result = fileUploadService.uploadImageWithUrl(file);
+        return Result.success(result);
     }
 }

@@ -45,13 +45,24 @@ public class ProductSkuService {
     private final ProductAttrRepository attrRepository;
     private final ProductAttrValueRepository attrValueRepository;
     private final ProductSkuConverter skuConverter;
+    private final FileUploadService fileUploadService;
 
 
     public List<ProductSkuVO> searchPricedSkusByName(String skuName) {
         List<ProductSku> skus = skuRepository
             .findBySkuNameContainingIgnoreCaseAndPriceStatusAndStatusOrderBySortOrderAsc(
                 skuName, PriceStatus.PRICED, Status.ACTIVE);
-        return skus.stream().map(skuConverter::toVO).collect(Collectors.toList());
+        return skus.stream()
+            .map(sku -> {
+                ProductSkuVO vo = skuConverter.toVO(sku);
+                // 将imageUrl（文件路径）转换为预签名URL
+                if (vo.getImageUrl() != null && !vo.getImageUrl().isEmpty()) {
+                    String presignedUrl = fileUploadService.generatePresignedUrl(vo.getImageUrl());
+                    vo.setImageUrl(presignedUrl);
+                }
+                return vo;
+            })
+            .collect(Collectors.toList());
     }
 
 
@@ -78,7 +89,14 @@ public class ProductSkuService {
         sku = skuRepository.save(sku);
 
         log.info("修改SKU价格成功, ID: {}, 价格: {}", id, price);
-        return skuConverter.toVO(sku);
+        
+        ProductSkuVO vo = skuConverter.toVO(sku);
+        // 将imageUrl（文件路径）转换为预签名URL
+        if (vo.getImageUrl() != null && !vo.getImageUrl().isEmpty()) {
+            String presignedUrl = fileUploadService.generatePresignedUrl(vo.getImageUrl());
+            vo.setImageUrl(presignedUrl);
+        }
+        return vo;
     }
 
     /**

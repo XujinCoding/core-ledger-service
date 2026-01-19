@@ -56,6 +56,7 @@ public class CustomerService {
     private final LedgerRepository ledgerRepository;
     private final CustomerConverter customerConverter;
     private final AddressService addressService;
+    private final FileUploadService fileUploadService;
 
     /**
      * 修改客户
@@ -200,6 +201,12 @@ public class CustomerService {
         addressRepository.findById(customer.getAddressId()).ifPresent(address -> {
             vo.setAddressPath(address.getMergerName());
         });
+
+        // 将avatarUrl（文件路径）转换为预签名URL
+        if (vo.getAvatarUrl() != null && !vo.getAvatarUrl().isEmpty()) {
+            String presignedUrl = fileUploadService.generatePresignedUrl(vo.getAvatarUrl());
+            vo.setAvatarUrl(presignedUrl);
+        }
 
         return vo;
     }
@@ -385,6 +392,13 @@ public class CustomerService {
         return customers.stream().map(customer -> {
             CustomerVO vo = customerConverter.toVO(customer);
             vo.setMerchantName(merchantMap.get(vo.getMerchantId()));
+            
+            // 将avatarUrl（文件路径）转换为预签名URL
+            if (vo.getAvatarUrl() != null && !vo.getAvatarUrl().isEmpty()) {
+                String presignedUrl = fileUploadService.generatePresignedUrl(vo.getAvatarUrl());
+                vo.setAvatarUrl(presignedUrl);
+            }
+            
             return vo;
         }).toList();
     }

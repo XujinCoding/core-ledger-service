@@ -36,6 +36,7 @@ public class MerchantService {
     private final MerchantConverter merchantConverter;
     private final SysAddressRepository addressRepository;
     private final QrCodeService qrCodeService;
+    private final FileUploadService fileUploadService;
 
     /**
      * 创建商户
@@ -173,6 +174,18 @@ public class MerchantService {
         addressRepository.findById(merchant.getAddressId()).ifPresent(address -> {
             vo.setAddressPath(address.getMergerName());
         });
+
+        // 将avatarUrl（文件路径）转换为预签名URL
+        if (vo.getAvatarUrl() != null && !vo.getAvatarUrl().isEmpty()) {
+            String presignedUrl = fileUploadService.generatePresignedUrl(vo.getAvatarUrl());
+            vo.setAvatarUrl(presignedUrl);
+        }
+
+        // 将qrCodeUrl（文件路径）转换为预签名URL
+        if (vo.getQrCodeUrl() != null && !vo.getQrCodeUrl().isEmpty()) {
+            String presignedUrl = fileUploadService.generatePresignedUrl(vo.getQrCodeUrl());
+            vo.setQrCodeUrl(presignedUrl);
+        }
 
         return vo;
     }
