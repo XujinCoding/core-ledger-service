@@ -127,12 +127,13 @@ sms:
   interval-seconds: 60
   verify-max-attempts: 3
 
-# GitHub Image Hosting Configuration
-github:
-  owner: XujinCoding
-  repo: core-ledger-image
-  branch: main
-  token: ${GITHUB_TOKEN}
-  path: images/
-  name: core-ledger
-  email: core-ledger@gmail.com
+# Tencent Cloud COS Configuration
+tencent:
+  cos:
+    secret-id: ${TENCENT_COS_SECRET_ID}
+    secret-key: ${TENCENT_COS_SECRET_KEY}
+    bucket-name: image-1304329767
+    region: ap-guangzhou
+    path-prefix: images/
+    # 可选: 自定义域名 (CDN 加速)
+    # custom-domain: https://cdn.yourdomain.com

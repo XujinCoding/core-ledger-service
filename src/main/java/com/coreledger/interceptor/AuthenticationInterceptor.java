@@ -81,15 +81,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         // 4. 设置 AppSessionContext
         AppSessionContext.setSessionInfo(sessionInfo);
 
-        // 5. 启用 Hibernate Filter
-        if (userInfo.getMerchantId() != null) {
-            Session session = entityManager.unwrap(Session.class);
-            session.enableFilter("merchantFilter")
-                    .setParameter("merchantId", userInfo.getMerchantId());
-            log.debug("启用 merchantFilter: merchantId={}", userInfo.getMerchantId());
-        }
-
-        // 6. 检查商户身份是否已选择商户（临时token限制）
+        // 5. 检查商户身份是否已选择商户（临时token限制）
         if (IdentityType.MERCHANT_OWNER.equals(userInfo.getIdentityType()) 
                 && userInfo.getMerchantId() == null) {
             String uri = request.getRequestURI();

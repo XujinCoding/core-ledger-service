@@ -1,55 +1,50 @@
 package com.coreledger.service;
 
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
-import com.coreledger.config.GitHubConfig;
+import com.coreledger.config.TencentCosConfig;
 import com.coreledger.enums.BusinessCode;
 import com.coreledger.exception.BusinessException;
+import com.qcloud.cos.COSClient;
+import com.qcloud.cos.model.ObjectMetadata;
+import com.qcloud.cos.model.PutObjectRequest;
+import com.qcloud.cos.model.PutObjectResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Base64;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 /**
- * 文件上传服务（GitHub 图床）
+ * 文件上传服务（腾讯云 COS）
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class FileUploadService {
 
-    private final GitHubConfig gitHubConfig;
-
-    private static final String GITHUB_API_URL = "https://api.github.com/repos/%s/%s/contents/%s%s";
+    private final COSClient cosClient;
+    private final TencentCosConfig cosConfig;
 
     /**
-     * 上传图片到 GitHub
+     * 上传图片到腾讯云 COS
      *
      * @param file 图片文件
      * @return 图片访问 URL
      */
     public String uploadImage(MultipartFile file) {
         try {
-            // 1. 读取文件并转为 Base64
-            InputStream inputStream = file.getInputStream();
-            byte[] fileBytes = inputStream.readAllBytes();
-
-            // 2. 生成唯一文件名
+            byte[] fileBytes = file.getInputStream().readAllBytes();
             String originalFilename = file.getOriginalFilename();
-            String extension = originalFilename != null && originalFilename.contains(".")
-                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
-                    : ".png";
-            String fileName = UUID.randomUUID().toString().replace("-", "") + extension;
-
-            // 3. 上传
-            return uploadBytes(fileBytes, fileName);
+            String extension = getFileExtension(originalFilename);
+            String fileName = generateFileName(extension);
+            String contentType = file.getContentType();
+            
+            return uploadBytes(fileBytes, fileName, contentType,null);
         } catch (IOException e) {
             log.error("读取文件失败", e);
             throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "读取文件失败");
@@ -57,61 +52,91 @@ public class FileUploadService {
     }
 
     /**
-     * 上传字节数组到 GitHub
+     * 上传字节数组到腾讯云 COS
      *
      * @param fileBytes 文件字节数组
      * @param fileName  文件名
      * @return 图片访问 URL
      */
     public String uploadBytes(byte[] fileBytes, String fileName) {
+        return uploadBytes(fileBytes, fileName, "image/png",null);
+    }
+
+    /**
+     * 上传字节数组到腾讯云 COS
+     *
+     * @param fileBytes   文件字节数组
+     * @param fileName    文件名
+     * @param contentType 内容类型
+     * @return 图片访问 URL
+     */
+    public String uploadBytes(byte[] fileBytes, String fileName, String contentType,String filePath) {
         try {
-            // 1. 转为 Base64
-            String fileBase64 = Base64.getEncoder().encodeToString(fileBytes);
-
-            // 2. 构建请求参数
-            JSONObject param = new JSONObject();
-            param.set("message", "upload: " + fileName);
-            param.set("content", fileBase64);
-            param.set("branch", gitHubConfig.getBranch());
-
-            JSONObject committer = new JSONObject();
-            committer.set("name", gitHubConfig.getName());
-            committer.set("email", gitHubConfig.getEmail());
-            param.set("committer", committer);
-
-            // 3. 构建请求 URL
-            String url = String.format(GITHUB_API_URL,
-                    gitHubConfig.getOwner(),
-                    gitHubConfig.getRepo(),
-                    gitHubConfig.getPath(),
-                    fileName);
-
-            // 4. 发起 PUT 请求
-            HttpResponse response = HttpRequest.put(url)
-                    .header("Accept", "application/vnd.github+json")
-                    .header("Authorization", "token " + gitHubConfig.getToken())
-                    .header("X-GitHub-Api-Version", "2022-11-28")
-                    .body(param.toString())
-                    .timeout(30000)
-                    .execute();
-
-            log.info("GitHub 上传响应状态: {}", response.getStatus());
-
-            if (response.isOk() || response.getStatus() == 201) {
-                JSONObject jsonObject = JSONUtil.parseObj(response.body());
-                JSONObject content = jsonObject.getJSONObject("content");
-                String downloadUrl = content.getStr("download_url");
-                log.info("文件上传成功: {}", downloadUrl);
-                return downloadUrl;
-            } else {
-                log.error("GitHub 上传失败: {}", response.body());
-                throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "文件上传失败");
+            // 构建对象键 (按日期分目录存储)
+            String dateDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+            String objectKey = cosConfig.getPathPrefix() + dateDir + "/" + fileName;
+            if (filePath != null) {
+                objectKey = filePath + dateDir + "/" + fileName;
             }
-        } catch (BusinessException e) {
-            throw e;
+
+            // 设置元数据
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(fileBytes.length);
+            if (contentType != null) {
+                metadata.setContentType(contentType);
+            }
+
+
+            // 上传文件
+            InputStream inputStream = new ByteArrayInputStream(fileBytes);
+            PutObjectRequest putRequest = new PutObjectRequest(
+                    cosConfig.getBucketName(),
+                    objectKey,
+                    inputStream,
+                    metadata
+            );
+
+            PutObjectResult result = cosClient.putObject(putRequest);
+            log.info("文件上传成功, ETag: {}, objectKey: {}", result.getETag(), objectKey);
+
+            log.info("文件访问 URI: {}", objectKey);
+            return objectKey;
+
         } catch (Exception e) {
             log.error("文件上传异常", e);
             throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "文件上传失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 删除文件
+     *
+     * @param objectKey 对象键
+     */
+    public void deleteFile(String objectKey) {
+        try {
+            cosClient.deleteObject(cosConfig.getBucketName(), objectKey);
+            log.info("文件删除成功: {}", objectKey);
+        } catch (Exception e) {
+            log.error("文件删除失败: {}", objectKey, e);
+            throw new BusinessException(BusinessCode.INTERNAL_SERVER_ERROR, "文件删除失败");
+        }
+    }
+
+    /**
+     * 获取文件扩展名
+     */
+    private String getFileExtension(String filename) {
+        if (filename != null && filename.contains(".")) {
+            return filename.substring(filename.lastIndexOf("."));
+        }
+        return ".png";
+    }
+
+    /**
+     * 生成唯一文件名
+     */
+    private String generateFileName(String extension) {
+        return UUID.randomUUID().toString().replace("-", "") + extension;
     }
 }
