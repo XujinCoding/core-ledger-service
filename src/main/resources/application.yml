@@ -8,9 +8,9 @@ spring:
     name: core-ledger-backend
 
   datasource:
-    url: jdbc:mysql://82.157.123.96:3306/core_ledger?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: core_ledger
-    password: core_ledger
+    url: ${DB_URL:jdbc:mysql://localhost:3306/core_ledger?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:core_ledger}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
@@ -58,10 +58,10 @@ spring:
   # Redis Configuration
   data:
     redis:
-      host: 82.157.123.96
-      port: 6379
-      password: core_ledger
-      database: 0
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      database: ${REDIS_DATABASE:0}
       timeout: 5000ms
       lettuce:
         pool:
@@ -73,9 +73,9 @@ spring:
 # Wechat Miniapp Configuration
 wechat:
   miniapp:
-    appid: wx38eaa619f18cad3d
-    secret: 038a23eda01e2cc33add856d6566b063
-    api-domain: https://api.weixin.qq.com
+    appid: ${WECHAT_APPID}
+    secret: ${WECHAT_SECRET}
+    api-domain: ${WECHAT_API_DOMAIN:https://api.weixin.qq.com}
 
 # MyBatis Configuration
 mybatis:
@@ -121,7 +121,7 @@ logging:
 
 # SMS Configuration
 sms:
-  api-url: https://push.spug.cc/send/Dn6ywmOPAMj17lod
+  api-url: ${SMS_API_URL}
   expire-minutes: 5
   daily-limit: 10
   interval-seconds: 60
@@ -132,8 +132,8 @@ tencent:
   cos:
     secret-id: ${TENCENT_COS_SECRET_ID}
     secret-key: ${TENCENT_COS_SECRET_KEY}
-    bucket-name: image-1304329767
-    region: ap-guangzhou
-    path-prefix: images/
+    bucket-name: ${TENCENT_COS_BUCKET_NAME:image-1304329767}
+    region: ${TENCENT_COS_REGION:ap-guangzhou}
+    path-prefix: ${TENCENT_COS_PATH_PREFIX:images/}
     # 可选: 自定义域名 (CDN 加速)
-    # custom-domain: https://cdn.yourdomain.com
+    # custom-domain: ${TENCENT_COS_CUSTOM_DOMAIN:}
