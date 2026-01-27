@@ -1,6 +1,7 @@
 package com.coreledger.controller;
 
 import com.coreledger.common.Result;
+import com.coreledger.dto.customer.CustomerProfileUpdateDTO;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
 import com.coreledger.service.CustomerService;
@@ -32,6 +33,24 @@ import org.springframework.web.bind.annotation.*;
 public class CustomerController {
 
     private final CustomerService customerService;
+
+    /**
+     * 获取当前登录客户的个人信息（返回模板客户）
+     */
+    @Operation(summary = "获取个人信息", description = "获取当前登录客户的个人信息")
+    @GetMapping("/profile")
+    public Result<CustomerVO> getProfile() {
+        return Result.success(customerService.getProfile());
+    }
+
+    /**
+     * 客户修改个人信息（只更新模板客户）
+     */
+    @Operation(summary = "修改个人信息", description = "客户修改个人信息")
+    @PutMapping("/profile")
+    public Result<CustomerVO> updateProfile(@Valid @RequestBody CustomerProfileUpdateDTO dto) {
+        return Result.success(customerService.updateProfile(dto));
+    }
 
     /**
      * 修改客户

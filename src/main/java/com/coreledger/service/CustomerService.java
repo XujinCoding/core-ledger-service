@@ -3,6 +3,7 @@ package com.coreledger.service;
 import cn.hutool.core.util.StrUtil;
 import com.coreledger.common.mapper.customer.CustomerConverter;
 import com.coreledger.dto.auth.CustomerRegisterDTO;
+import com.coreledger.dto.customer.CustomerProfileUpdateDTO;
 import com.coreledger.dto.customer.CustomerSearchDTO;
 import com.coreledger.dto.customer.CustomerUpdateDTO;
 import com.coreledger.dto.merchant.CreateCustomerDTO;
@@ -437,6 +438,58 @@ public class CustomerService {
         
         long count = customerRepository.count(spec);
         return new CustomerListStatsVO(count);
+    }
+
+    /**
+     * 获取当前登录客户的个人信息（返回模板客户）
+     *
+     * @return 客户个人信息
+     * @throws NotFoundException 当模板客户不存在时抛出 (BusinessCode.CUSTOMER_NOT_FOUND)
+     */
+    public CustomerVO getProfile() {
+        Long userId = AppSessionContext.getUserId();
+        Customer templateCustomer = findTemplateByUserId(userId)
+                .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
+        return toVOWithAddressPath(templateCustomer);
+    }
+
+    /**
+     * 客户修改个人信息（只更新模板客户）
+     *
+     * 逻辑：
+     * 1. 获取当前登录用户ID
+     * 2. 查询该用户的模板客户
+     * 3. 更新模板客户信息
+     * 4. 保存历史记录
+     *
+     * @param dto 个人信息更新DTO
+     * @return 更新后的模板客户VO
+     * @throws NotFoundException 当模板客户不存在时抛出 (BusinessCode.CUSTOMER_NOT_FOUND)
+     */
+    @Transactional
+    public CustomerVO updateProfile(CustomerProfileUpdateDTO dto) {
+        Long userId = AppSessionContext.getUserId();
+
+        // 1. 查询模板客户
+        Customer templateCustomer = findTemplateByUserId(userId)
+                .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
+
+        // 2. 更新模板客户信息
+        if (dto.getName() != null) templateCustomer.setName(dto.getName());
+        if (dto.getAlias() != null) templateCustomer.setAlias(dto.getAlias());
+        if (dto.getGender() != null) templateCustomer.setGender(dto.getGender());
+        if (dto.getAge() != null) templateCustomer.setAge(dto.getAge());
+        if (dto.getAddressId() != null) templateCustomer.setAddressId(dto.getAddressId());
+        if (dto.getAddressDetail() != null) templateCustomer.setAddressDetail(dto.getAddressDetail());
+        if (dto.getAvatarUrl() != null) templateCustomer.setAvatarUrl(dto.getAvatarUrl());
+
+        // 3. 保存并记录历史
+        templateCustomer = customerRepository.save(templateCustomer);
+        saveCustomerSnapshot(templateCustomer, OperationType.UPDATE);
+
+        log.info("客户修改个人信息成功, userId: {}, customerId: {}", userId, templateCustomer.getId());
+
+        return toVOWithAddressPath(templateCustomer);
     }
 
     /**

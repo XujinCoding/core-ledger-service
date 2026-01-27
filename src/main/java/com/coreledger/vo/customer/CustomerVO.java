@@ -24,6 +24,12 @@ public class CustomerVO {
     private Long id;
 
     /**
+     * 客户编码
+     */
+    @Schema(description = "客户编码")
+    private String customerNo;
+
+    /**
      * 客户姓名
      */
     @Schema(description = "客户姓名")
