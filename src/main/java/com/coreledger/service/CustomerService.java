@@ -58,6 +58,7 @@ public class CustomerService {
     private final CustomerConverter customerConverter;
     private final AddressService addressService;
     private final FileUploadService fileUploadService;
+    private final SmsService smsService;
 
     /**
      * 修改客户
@@ -459,12 +460,14 @@ public class CustomerService {
      * 逻辑：
      * 1. 获取当前登录用户ID
      * 2. 查询该用户的模板客户
-     * 3. 更新模板客户信息
-     * 4. 保存历史记录
+     * 3. 如果修改了手机号，验证短信验证码
+     * 4. 更新模板客户信息
+     * 5. 保存历史记录
      *
      * @param dto 个人信息更新DTO
      * @return 更新后的模板客户VO
      * @throws NotFoundException 当模板客户不存在时抛出 (BusinessCode.CUSTOMER_NOT_FOUND)
+     * @throws BusinessException 当验证码无效时抛出
      */
     @Transactional
     public CustomerVO updateProfile(CustomerProfileUpdateDTO dto) {
@@ -474,7 +477,19 @@ public class CustomerService {
         Customer templateCustomer = findTemplateByUserId(userId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
 
-        // 2. 更新模板客户信息
+        // 2. 如果修改了手机号，需要验证短信验证码
+        if (StrUtil.isNotBlank(dto.getPhone()) && !Objects.equals(dto.getPhone(), templateCustomer.getPhone())) {
+            // 验证码必填
+            if (StrUtil.isBlank(dto.getSmsCode())) {
+                throw new BusinessException(BusinessCode.SMS_CODE_REQUIRED);
+            }
+            // 验证短信验证码
+            smsService.verifySmsCode(dto.getPhone(), dto.getSmsCode(), SmsScene.CHANGE_PHONE);
+            // 更新手机号
+            templateCustomer.setPhone(dto.getPhone());
+        }
+
+        // 3. 更新模板客户信息
         if (dto.getName() != null) templateCustomer.setName(dto.getName());
         if (dto.getAlias() != null) templateCustomer.setAlias(dto.getAlias());
         if (dto.getGender() != null) templateCustomer.setGender(dto.getGender());
@@ -483,7 +498,7 @@ public class CustomerService {
         if (dto.getAddressDetail() != null) templateCustomer.setAddressDetail(dto.getAddressDetail());
         if (dto.getAvatarUrl() != null) templateCustomer.setAvatarUrl(dto.getAvatarUrl());
 
-        // 3. 保存并记录历史
+        // 4. 保存并记录历史
         templateCustomer = customerRepository.save(templateCustomer);
         saveCustomerSnapshot(templateCustomer, OperationType.UPDATE);
 

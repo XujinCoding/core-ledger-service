@@ -59,4 +59,18 @@ public class CustomerProfileUpdateDTO {
     @Size(max = 500, message = "头像URL长度不能超过500个字符")
     @Schema(description = "客户头像URL")
     private String avatarUrl;
+
+    /**
+     * 手机号（修改时需要验证码）
+     */
+    @Size(max = 20, message = "手机号长度不能超过20个字符")
+    @Schema(description = "手机号", example = "13800138000")
+    private String phone;
+
+    /**
+     * 短信验证码（修改手机号时必填）
+     */
+    @Size(max = 10, message = "验证码长度不能超过10个字符")
+    @Schema(description = "短信验证码")
+    private String smsCode;
 }
