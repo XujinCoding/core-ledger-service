@@ -159,7 +159,7 @@ public class AuthService {
         Long userId = AppSessionContext.getUserId();
         // 如果当前user已经有存在客户绑定了商家, 不能重复绑定
         List<Customer> formalByUserId = customerService.findFormalByUserId(userId);
-        if (CollectionUtils.isEmpty(formalByUserId)){
+        if (!CollectionUtils.isEmpty(formalByUserId)){
             throw new BusinessException(BusinessCode.CUSTOMER_BIND_EXISTS);
         }
         assert userId != null;
