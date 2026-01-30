@@ -35,4 +35,12 @@ public interface LedgerItemRepository extends JpaRepository<LedgerItem, Long>, J
     default List<LedgerItem> findActiveByLedgerId(Long ledgerId) {
         return findByLedgerIdAndStatus(ledgerId, Status.ACTIVE);
     }
+
+    /**
+     * 根据账本ID列表批量查询明细
+     *
+     * @param ledgerIds 账本ID列表
+     * @return 明细列表
+     */
+    List<LedgerItem> findByLedgerIdIn(List<Long> ledgerIds);
 }

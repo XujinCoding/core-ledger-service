@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 
 public class PredicateBuilder<T> extends AbstractPredicateBuilder<T> {
@@ -116,6 +117,18 @@ public class PredicateBuilder<T> extends AbstractPredicateBuilder<T> {
 
     public PredicateBuilder<T> lessThan(boolean condition, String attribute, Instant value) {
         return this.predicate(condition, (root, query, cb) -> cb.lessThan(root.get(attribute), value));
+    }
+
+    public PredicateBuilder<T> greaterThanOrEqualTo(boolean condition, String attribute, LocalDateTime value) {
+        return this.predicate(condition, (root, query, cb) -> cb.greaterThanOrEqualTo(root.get(attribute), value));
+    }
+
+    public PredicateBuilder<T> lessThan(boolean condition, String attribute, LocalDateTime value) {
+        return this.predicate(condition, (root, query, cb) -> cb.lessThan(root.get(attribute), value));
+    }
+
+    public PredicateBuilder<T> lessThanOrEqualTo(boolean condition, String attribute, LocalDateTime value) {
+        return this.predicate(condition, (root, query, cb) -> cb.lessThanOrEqualTo(root.get(attribute), value));
     }
 
     public PredicateBuilder<T> lessThanOrEqualTo(boolean condition, String attribute, Long value) {
