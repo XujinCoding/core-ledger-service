@@ -402,7 +402,7 @@ public class LedgerService {
 
         // 使用 PredicateBuilder 构建查询条件
         Specification<Ledger> spec = PredicateBuilder.<Ledger>and()
-                .equal("ledgerStatus", LedgerStatus.IN_PROGRESS)
+                .in("ledgerStatus", List.of(LedgerStatus.IN_PROGRESS,LedgerStatus.PARTIAL))
                 .build();
 
         Page<Ledger> ledgerPage = ledgerRepository.findAll(spec, pageable);
