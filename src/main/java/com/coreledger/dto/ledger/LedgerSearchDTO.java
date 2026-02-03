@@ -28,4 +28,12 @@ public class LedgerSearchDTO extends PageCondition {
     /** 账单状态 */
     @Schema(description = "账单状态")
     private LedgerStatus ledgerStatus;
+
+    /** 客户标识 */
+    @Schema(description = "客户标识")
+    private Long customerId;
+
+    /** 商户标识*/
+    @Schema(description = "商户标识")
+    private Long merchantId;
 }

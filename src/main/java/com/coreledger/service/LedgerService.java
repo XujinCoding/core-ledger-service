@@ -6,6 +6,7 @@ import com.coreledger.common.mapper.ledger.LedgerConverter;
 import com.coreledger.common.mapper.ledger.LedgerItemConverter;
 import com.coreledger.common.mapper.ledger.PaymentRecordConverter;
 import com.coreledger.dto.ledger.*;
+import com.coreledger.utils.AppSessionContext;
 import com.coreledger.vo.LedgerListStatsVO;
 import com.coreledger.vo.LedgerListVO;
 import com.coreledger.entity.Customer;
@@ -385,6 +386,7 @@ public class LedgerService {
      */
     public PageQueryResult<LedgerListVO> searchLedgers(LedgerSearchDTO condition) {
         try (var page = PageHelper.startPage(condition.getPageNumber(), condition.getPageSize())) {
+            condition.setMerchantId(AppSessionContext.getMerchantId());
             List<LedgerListVO> list = ledgerMapper.searchLedgers(condition);
             PageInfo<LedgerListVO> result = new PageInfo<>(list);
             return new PageQueryResult<>(list,result.getPages(), result.getTotal());
@@ -402,6 +404,7 @@ public class LedgerService {
 
         // 使用 PredicateBuilder 构建查询条件
         Specification<Ledger> spec = PredicateBuilder.<Ledger>and()
+                .equal("merchantId",AppSessionContext.getMerchantId())
                 .in("ledgerStatus", List.of(LedgerStatus.IN_PROGRESS,LedgerStatus.PARTIAL))
                 .build();
 
@@ -456,6 +459,7 @@ public class LedgerService {
      */
     public LedgerListStatsVO getLedgerListStats(LedgerSearchDTO dto) {
         log.info("获取账单列表统计，条件: {}", dto);
+        dto.setMerchantId(AppSessionContext.getMerchantId());
         return ledgerMapper.statsLedgers(dto);
     }
 

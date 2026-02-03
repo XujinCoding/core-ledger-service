@@ -76,10 +76,9 @@ public class CustomerHistory {
     @Column(name = "memo", length = 255)
     private String memo;
 
-    /** 客户类型 */
-    @Column(name = "customer_type", nullable = false)
-    @Convert(converter = CustomerTypeConverter.class)
-    private CustomerType customerType;
+    /** 积分 */
+    @Column(name = "points")
+    private Integer points = 0;
 
     /** 状态 */
     @Column(name = "status", nullable = false)
@@ -130,7 +129,7 @@ public class CustomerHistory {
         history.setAge(customer.getAge());
         history.setAddressId(customer.getAddressId());
         history.setAddressDetail(customer.getAddressDetail());
-        history.setCustomerType(customer.getCustomerType());
+        history.setPoints(customer.getPoints());
         history.setStatus(1); // 默认状态为启用
         history.setOperationType(operationType);
         history.setOperationTime(customer.getModifyInstant());

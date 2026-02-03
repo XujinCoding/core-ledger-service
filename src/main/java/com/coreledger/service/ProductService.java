@@ -163,6 +163,7 @@ public class ProductService {
         final List<Long> finalCategoryIds = categoryIds;
         Specification<Product> spec = PredicateBuilder.<Product>and()
             .equal("status", Status.ACTIVE)
+            .equal("merchantId", AppSessionContext.getMerchantId())
             .in("categoryId", finalCategoryIds)
             .like(StrUtil::isNotBlank, "name", keyword)
             .build();

@@ -25,7 +25,6 @@ public interface CustomerConverter {
      * @return VO
      */
     @Mapping(target = "genderDesc", source = "gender.description")
-    @Mapping(target = "customerTypeDesc", source = "customerType.description")
     @Mapping(target = "customerNo", source = "code")
     @Mapping(target = "addressPath", ignore = true)
     @Mapping(target = "remark", source = "memo")

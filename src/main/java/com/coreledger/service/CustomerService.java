@@ -10,14 +10,11 @@ import com.coreledger.dto.merchant.CreateCustomerDTO;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.CustomerHistory;
 import com.coreledger.entity.Merchant;
+import com.coreledger.entity.SysUser;
 import com.coreledger.enums.*;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
-import com.coreledger.repository.CustomerHistoryRepository;
-import com.coreledger.repository.CustomerRepository;
-import com.coreledger.repository.LedgerRepository;
-import com.coreledger.repository.MerchantRepository;
-import com.coreledger.repository.SysAddressRepository;
+import com.coreledger.repository.*;
 import com.coreledger.utils.AppSessionContext;
 import com.coreledger.utils.specification.PredicateBuilder;
 import com.coreledger.vo.customer.CustomerListStatsVO;
@@ -25,6 +22,7 @@ import com.coreledger.vo.customer.CustomerStatsVO;
 import com.coreledger.vo.customer.CustomerVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -51,6 +49,7 @@ import java.util.stream.Collectors;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final SysUserRepository sysUserRepository;
     private final SysAddressRepository addressRepository;
     private final CustomerHistoryRepository historyRepository;
     private final MerchantRepository merchantRepository;
@@ -239,10 +238,10 @@ public class CustomerService {
                 .ifPresent(existingCustomer -> {
                     throw new BusinessException(BusinessCode.CUSTOMER_PHONE_EXISTS);
                 });
-        
+
         // 2. 生成客户编号
         String customerNo = generateCustomerNo();
-        
+
         // 3. 创建客户
         Customer customer = new Customer();
         customer.setCode(customerNo);
@@ -262,7 +261,7 @@ public class CustomerService {
         // 4. 保存客户快照（创建操作）
         saveCustomerSnapshot(customer, OperationType.CREATE);
         log.info("创建客户成功: customerId={}, customerNo={}", customer.getId(), customerNo);
-        
+
         return toVOWithAddressPath(customer);
     }
 
@@ -273,7 +272,7 @@ public class CustomerService {
     public void bindCustomerToUser(Long customerId, Long userId) {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
-        
+
         customer.setUserId(userId);
         customer.setIsRegistered(RegisterStatus.REGISTERED);
         customerRepository.save(customer);
@@ -301,77 +300,7 @@ public class CustomerService {
      * 根据用户ID查询该用户是客户的所有关系
      */
     public List<Customer> findFormalByUserId(Long userId) {
-        return customerRepository.findByUserIdAndCustomerType(userId,CustomerType.FORMAL);
-    }
-
-    /**
-     * 根据用户ID查询模板客户（TEMPLATE 类型）
-     */
-    public Optional<Customer> findTemplateByUserId(Long userId) {
-        return customerRepository.findByUserIdAndCustomerType(userId, CustomerType.TEMPLATE).stream().findFirst();
-    }
-
-    /**
-     * 创建模板客户（TEMPLATE 类型，未绑定商户）
-     * 用于保存用户在首次注册时填写的客户信息
-     */
-    @Transactional
-    public Customer createTemplateCustomer(CustomerRegisterDTO dto, Long userId) {
-        // 1. 生成客户编号
-        String customerNo = generateCustomerNo();
-
-        // 2. 创建模板客户
-        Customer customer = new Customer();
-        customer.setCode(customerNo);
-        customer.setMerchantId(null);  // 模板客户不绑定商户
-        customer.setUserId(userId);
-        customer.setName(dto.getCustomerName());
-        customer.setPhone(dto.getPhone());
-        customer.setAlias(dto.getAlias());
-        customer.setGender(dto.getGender() != null ? dto.getGender() : com.coreledger.enums.Gender.UNKNOWN);
-        customer.setAge(dto.getAge());
-        customer.setAddressId(dto.getAddressId());
-        customer.setAddressDetail(dto.getAddressDetail());
-        customer.setCustomerType(CustomerType.TEMPLATE);  // 标记为模板
-        customer.setIsRegistered(RegisterStatus.REGISTERED);
-        customer.setStatus(Status.ACTIVE);
-
-        customer = customerRepository.save(customer);
-        log.info("创建模板客户成功: customerId={}, customerNo={}, userId={}", customer.getId(), customerNo, userId);
-
-        return customer;
-    }
-
-    /**
-     * 从模板客户创建正式客户（FORMAL 类型）
-     * 用于客户绑定商户时，从模板复制数据创建正式客户
-     */
-    @Transactional
-    public Customer createFormalCustomerFromTemplate(Customer templateCustomer, Long merchantId) {
-        // 1. 生成客户编号
-        String customerNo = generateCustomerNo();
-
-        // 2. 从模板复制数据创建正式客户
-        Customer formalCustomer = new Customer();
-        formalCustomer.setCode(customerNo);
-        formalCustomer.setMerchantId(merchantId);  // 绑定商户
-        formalCustomer.setUserId(templateCustomer.getUserId());
-        formalCustomer.setName(templateCustomer.getName());
-        formalCustomer.setPhone(templateCustomer.getPhone());
-        formalCustomer.setAlias(templateCustomer.getAlias());
-        formalCustomer.setGender(templateCustomer.getGender());
-        formalCustomer.setAge(templateCustomer.getAge());
-        formalCustomer.setAddressId(templateCustomer.getAddressId());
-        formalCustomer.setAddressDetail(templateCustomer.getAddressDetail());
-        formalCustomer.setCustomerType(CustomerType.FORMAL);  // 标记为正式
-        formalCustomer.setIsRegistered(RegisterStatus.REGISTERED);
-        formalCustomer.setStatus(Status.ACTIVE);
-
-        formalCustomer = customerRepository.save(formalCustomer);
-        log.info("从模板创建正式客户成功: formalCustomerId={}, templateCustomerId={}, merchantId={}", 
-                formalCustomer.getId(), templateCustomer.getId(), merchantId);
-
-        return formalCustomer;
+        return customerRepository.findByUserId(userId);
     }
 
     /**
@@ -394,13 +323,13 @@ public class CustomerService {
         return customers.stream().map(customer -> {
             CustomerVO vo = customerConverter.toVO(customer);
             vo.setMerchantName(merchantMap.get(vo.getMerchantId()));
-            
+
             // 将avatarUrl（文件路径）转换为预签名URL
             if (vo.getAvatarUrl() != null && !vo.getAvatarUrl().isEmpty()) {
                 String presignedUrl = fileUploadService.generatePresignedUrl(vo.getAvatarUrl());
                 vo.setAvatarUrl(presignedUrl);
             }
-            
+
             return vo;
         }).toList();
     }
@@ -423,62 +352,84 @@ public class CustomerService {
      */
     public CustomerListStatsVO getCustomerListStats(CustomerSearchDTO dto) {
         log.info("获取客户列表统计，条件: {}", dto);
-        
+
         List<Long> addressIds = new ArrayList<>();
         if (dto.getAddressId() != null) {
             addressIds = addressService.getAllChildAddressIds(dto.getAddressId());
             addressIds.add(dto.getAddressId());
         }
-        
+
         Specification<Customer> spec = PredicateBuilder.<Customer>and()
                 .like(StrUtil::isNotBlank, "name", dto.getName())
                 .like(StrUtil::isNotBlank, "phone", dto.getPhone())
                 .equal("merchantId", AppSessionContext.getMerchantId())
                 .in("addressId", addressIds)
                 .build();
-        
+
         long count = customerRepository.count(spec);
         return new CustomerListStatsVO(count);
     }
 
     /**
-     * 获取当前登录客户的个人信息（返回模板客户）
+     * 获取当前登录客户的个人信息（从SysUser读取）
      *
      * @return 客户个人信息
-     * @throws NotFoundException 当模板客户不存在时抛出 (BusinessCode.CUSTOMER_NOT_FOUND)
+     * @throws NotFoundException 当用户不存在时抛出 (BusinessCode.USER_NOT_FOUND)
      */
     public CustomerVO getProfile() {
         Long userId = AppSessionContext.getUserId();
-        Customer templateCustomer = findTemplateByUserId(userId)
-                .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
-        return toVOWithAddressPath(templateCustomer);
+        SysUser user = sysUserRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
+
+        // 将SysUser转换为CustomerVO（保持接口兼容性）
+        return genCustomerResult(user);
+    }
+
+    private @NotNull CustomerVO genCustomerResult(SysUser user) {
+        CustomerVO vo = new CustomerVO();
+        vo.setId(user.getId());
+        vo.setName(user.getName());
+        vo.setPhone(user.getPhone());
+        vo.setAlias(user.getNickname());  // nickname映射到alias
+        vo.setGender(user.getGender());
+        vo.setAge(user.getAge());
+        vo.setAddressId(user.getAddressId());
+        vo.setAddressDetail(user.getAddressDetail());
+        vo.setAvatarUrl(user.getAvatarUrl());
+
+        // 设置地址路径
+        if (user.getAddressId() != null) {
+            addressRepository.findById(user.getAddressId()).ifPresent(address -> {
+                vo.setAddressPath(address.getMergerName());
+            });
+        }
+        return vo;
     }
 
     /**
-     * 客户修改个人信息（只更新模板客户）
+     * 客户修改个人信息（更新SysUser）
      *
      * 逻辑：
      * 1. 获取当前登录用户ID
-     * 2. 查询该用户的模板客户
+     * 2. 查询SysUser
      * 3. 如果修改了手机号，验证短信验证码
-     * 4. 更新模板客户信息
-     * 5. 保存历史记录
+     * 4. 更新SysUser信息
      *
      * @param dto 个人信息更新DTO
-     * @return 更新后的模板客户VO
-     * @throws NotFoundException 当模板客户不存在时抛出 (BusinessCode.CUSTOMER_NOT_FOUND)
+     * @return 更新后的用户信息VO
+     * @throws NotFoundException 当用户不存在时抛出 (BusinessCode.USER_NOT_FOUND)
      * @throws BusinessException 当验证码无效时抛出
      */
     @Transactional
     public CustomerVO updateProfile(CustomerProfileUpdateDTO dto) {
         Long userId = AppSessionContext.getUserId();
 
-        // 1. 查询模板客户
-        Customer templateCustomer = findTemplateByUserId(userId)
-                .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
+        // 1. 查询SysUser
+        SysUser user = sysUserRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
 
         // 2. 如果修改了手机号，需要验证短信验证码
-        if (StrUtil.isNotBlank(dto.getPhone()) && !Objects.equals(dto.getPhone(), templateCustomer.getPhone())) {
+        if (StrUtil.isNotBlank(dto.getPhone()) && !Objects.equals(dto.getPhone(), user.getPhone())) {
             // 验证码必填
             if (StrUtil.isBlank(dto.getSmsCode())) {
                 throw new BusinessException(BusinessCode.SMS_CODE_REQUIRED);
@@ -486,25 +437,25 @@ public class CustomerService {
             // 验证短信验证码
             smsService.verifySmsCode(dto.getPhone(), dto.getSmsCode(), SmsScene.CHANGE_PHONE);
             // 更新手机号
-            templateCustomer.setPhone(dto.getPhone());
+            user.setPhone(dto.getPhone());
         }
 
-        // 3. 更新模板客户信息
-        if (dto.getName() != null) templateCustomer.setName(dto.getName());
-        if (dto.getAlias() != null) templateCustomer.setAlias(dto.getAlias());
-        if (dto.getGender() != null) templateCustomer.setGender(dto.getGender());
-        if (dto.getAge() != null) templateCustomer.setAge(dto.getAge());
-        if (dto.getAddressId() != null) templateCustomer.setAddressId(dto.getAddressId());
-        if (dto.getAddressDetail() != null) templateCustomer.setAddressDetail(dto.getAddressDetail());
-        if (dto.getAvatarUrl() != null) templateCustomer.setAvatarUrl(dto.getAvatarUrl());
+        // 3. 更新SysUser信息
+        if (dto.getName() != null) user.setName(dto.getName());
+        if (dto.getAlias() != null) user.setNickname(dto.getAlias());  // alias映射到nickname
+        if (dto.getGender() != null) user.setGender(dto.getGender());
+        if (dto.getAge() != null) user.setAge(dto.getAge());
+        if (dto.getAddressId() != null) user.setAddressId(dto.getAddressId());
+        if (dto.getAddressDetail() != null) user.setAddressDetail(dto.getAddressDetail());
+        if (dto.getAvatarUrl() != null) user.setAvatarUrl(dto.getAvatarUrl());
 
-        // 4. 保存并记录历史
-        templateCustomer = customerRepository.save(templateCustomer);
-        saveCustomerSnapshot(templateCustomer, OperationType.UPDATE);
+        // 4. 保存
+        user = sysUserRepository.save(user);
 
-        log.info("客户修改个人信息成功, userId: {}, customerId: {}", userId, templateCustomer.getId());
+        log.info("客户修改个人信息成功, userId: {}", userId);
 
-        return toVOWithAddressPath(templateCustomer);
+        // 5. 转换为CustomerVO返回（保持接口兼容性）
+        return genCustomerResult(user);
     }
 
     /**
@@ -516,4 +467,67 @@ public class CustomerService {
         String random = String.format("%03d", new Random().nextInt(1000));
         return "C_" + timestamp + "_" + random;
     }
+
+    /**
+     * 从SysUser创建Customer
+     * 用于客户注册时直接绑定商户的场景
+     *
+     * @param user       系统用户
+     * @param merchantId 商户ID
+     * @param dto        注册DTO
+     * @return 创建的客户
+     */
+    @Transactional
+    public Customer createCustomerFromSysUser(com.coreledger.entity.SysUser user, Long merchantId, CustomerRegisterDTO dto) {
+        // 1. 生成客户编号
+        String customerNo = generateCustomerNo();
+
+        // 2. 创建客户（从SysUser复制信息）
+        Customer customer = new Customer();
+        customer.setCode(customerNo);
+        customer.setMerchantId(merchantId);
+        customer.setUserId(user.getId());
+        customer.setName(user.getName());
+        customer.setPhone(user.getPhone());
+        customer.setAlias(dto.getAlias());
+        customer.setGender(user.getGender());
+        customer.setAge(user.getAge());
+        customer.setAddressId(user.getAddressId());
+        customer.setAddressDetail(user.getAddressDetail());
+        customer.setAvatarUrl(user.getAvatarUrl());
+        customer.setIsRegistered(RegisterStatus.REGISTERED);
+        customer.setStatus(Status.ACTIVE);
+
+        customer = customerRepository.save(customer);
+        saveCustomerSnapshot(customer, OperationType.CREATE);
+
+        log.info("从SysUser创建客户成功: customerId={}, userId={}, merchantId={}",
+                customer.getId(), user.getId(), merchantId);
+
+        return customer;
+    }
+
+    /**
+     * 保存客户
+     *
+     * @param customer 客户实体
+     * @return 保存后的客户
+     */
+    @Transactional
+    public Customer save(Customer customer) {
+        return customerRepository.save(customer);
+    }
+
+    /**
+     * 根据用户ID和商户ID查询客户
+     *
+     * @param userId     用户ID
+     * @param merchantId 商户ID
+     * @return 客户信息
+     */
+    public Optional<Customer> findByUserIdAndMerchantId(Long userId, Long merchantId) {
+        return customerRepository.findByUserIdAndMerchantId(
+                userId, merchantId);
+    }
 }
+

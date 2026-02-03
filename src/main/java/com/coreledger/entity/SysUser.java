@@ -1,7 +1,7 @@
 package com.coreledger.entity;
 
-import com.coreledger.config.converter.UserRoleConverter;
-import com.coreledger.enums.UserRole;
+import com.coreledger.config.converter.GenderConverter;
+import com.coreledger.enums.Gender;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,4 +39,53 @@ public class SysUser extends BaseEntity {
      */
     @Column(name = "wx_openid", length = 100, unique = true)
     private String wxOpenid;
+
+    /**
+     * 真实姓名
+     */
+    @Column(name = "name", length = 100)
+    private String name;
+
+    /**
+     * 昵称
+     */
+    @Column(name = "nickname", length = 100)
+    private String nickname;
+
+    /**
+     * 用户头像URL
+     */
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
+    /**
+     * 性别
+     */
+    @Column(name = "gender")
+    @Convert(converter = GenderConverter.class)
+    private Gender gender = Gender.UNKNOWN;
+
+    /**
+     * 年龄
+     */
+    @Column(name = "age")
+    private Integer age;
+
+    /**
+     * 手机号
+     */
+    @Column(name = "phone", length = 20, unique = true)
+    private String phone;
+
+    /**
+     * 关联地址ID
+     */
+    @Column(name = "address_id")
+    private Long addressId;
+
+    /**
+     * 详细地址
+     */
+    @Column(name = "address_detail", length = 255)
+    private String addressDetail;
 }

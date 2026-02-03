@@ -29,7 +29,7 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
     /**
      * 根据user_id和merchant_id查询
      */
-    Optional<Customer> findByUserIdAndMerchantIdAndCustomerType(Long userId, Long merchantId,CustomerType customerType);
+    Optional<Customer> findByUserIdAndMerchantId(Long userId, Long merchantId);
 
     /**
      * 根据user_id查询所有客户
@@ -55,11 +55,6 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
      * 检查user_id和merchant_id是否已存在
      */
     boolean existsByUserIdAndMerchantId(Long userId, Long merchantId);
-
-    /**
-     * 根据user_id和customer_type查询客户
-     */
-    List<Customer> findByUserIdAndCustomerType(Long userId, CustomerType customerType);
 
     /**
      * 统计商户的客户数量

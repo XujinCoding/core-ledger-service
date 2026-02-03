@@ -5,10 +5,12 @@ import com.coreledger.dto.auth.MerchantRegisterDTO;
 import com.coreledger.dto.merchant.UpdateMerchantDTO;
 import com.coreledger.entity.Merchant;
 import com.coreledger.enums.BusinessCode;
+import com.coreledger.enums.Identity;
 import com.coreledger.enums.Status;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.repository.MerchantRepository;
 import com.coreledger.repository.SysAddressRepository;
+import com.coreledger.utils.AppSessionContext;
 import com.coreledger.vo.merchant.MerchantVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +39,7 @@ public class MerchantService {
     private final SysAddressRepository addressRepository;
     private final QrCodeService qrCodeService;
     private final FileUploadService fileUploadService;
+    private final UserMerchantRelationService userMerchantRelationService;
 
     /**
      * 创建商户
@@ -66,6 +69,7 @@ public class MerchantService {
         merchant.setQrCodeUrl(qrCodeUrl);
         
         merchant = merchantRepository.save(merchant);
+        userMerchantRelationService.createRelation(AppSessionContext.getUserId(),merchant.getId(), Identity.OWNER);
         log.info("创建商户成功: merchantId={}, merchantNo={}", merchant.getId(), merchantNo);
         
         return toVOWithAddressPath(merchant);
@@ -188,5 +192,15 @@ public class MerchantService {
         }
 
         return vo;
+    }
+
+    /**
+     * 根据ID列表查询商户列表
+     *
+     * @param merchantIds 商户ID列表
+     * @return 商户列表
+     */
+    public List<Merchant> findByIds(List<Long> merchantIds) {
+        return merchantRepository.findAllById(merchantIds);
     }
 }

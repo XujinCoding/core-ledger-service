@@ -6,6 +6,7 @@ import com.coreledger.dto.auth.*;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.Merchant;
 import com.coreledger.entity.SysUser;
+import com.coreledger.entity.UserMerchantRelation;
 import com.coreledger.enums.*;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
@@ -53,7 +54,8 @@ public class AuthService {
     private final MerchantService merchantService;
     private final CustomerService customerService;
     private final SmsService smsService;
-    private final StringRedisTemplate stringRedisTemplate;;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final UserMerchantRelationService userMerchantRelationService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     /**
@@ -105,14 +107,26 @@ public class AuthService {
         // 3. 获取数据
         String openid = validateWechatLogin(dto.getCode());
         SysUser user = getOrCreateUser(openid);
+
+        // 4. 更新用户个人信息
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setPhone(dto.getPhone());
+        user.setNickname(dto.getNickname());
+        user.setAvatarUrl(dto.getAvatarUrl());
+        user.setAddressId(dto.getAddressId());
+        user.setAddressDetail(dto.getAddressDetail());
         sysUserRepository.save(user);
 
+        // 5. 创建商户
         MerchantVO merchantVO = merchantService.createMerchant(dto, user.getId());
+
+        // 6. 创建用户-商户关系（商户老板）
+        userMerchantRelationService.createRelation(user.getId(), merchantVO.getId(), Identity.OWNER);
+
         log.info("商户注册成功: userId={}, merchantId={}, phone={}", user.getId(), merchantVO.getId(), dto.getPhone());
 
-        // 4. 返回
+        // 7. 返回
         return generateLoginResponse(user, merchantVO.getId(), null);
     }
 
@@ -126,26 +140,56 @@ public class AuthService {
 
         String openId = validateWechatLogin(dto.getCode());
 
-        // 2. 获取数据
+        // 2. 创建/更新用户个人信息
         SysUser user = getOrCreateUser(openId);
+        user.setName(dto.getCustomerName());
+        user.setNickname(dto.getNickname());
+        user.setAvatarUrl(dto.getAvatarUrl());
+        user.setPhone(dto.getPhone());
+        user.setGender(dto.getGender());
+        user.setAge(dto.getAge());
+        user.setAddressId(dto.getAddressId());
+        user.setAddressDetail(dto.getAddressDetail());
         sysUserRepository.save(user);
-        Customer templateCustomer = customerService.createTemplateCustomer(dto, user.getId());
 
+        // 3. 如果有邀请码，直接绑定商户
         if (Objects.nonNull(dto.getInviteCode())) {
             Merchant merchant = merchantService.findByInviteCode(dto.getInviteCode())
                     .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
-            Customer customer = customerService.createFormalCustomerFromTemplate(templateCustomer, merchant.getId());
-            return generateLoginResponse(user, merchant.getId(), customer.getId());
 
+            // 查找是否有phone相同的customer（商户预先创建的）
+            Optional<Customer> existingCustomer = customerService
+                    .findUnregisteredCustomerByPhoneAndMerchantId(dto.getPhone(), merchant.getId());
+
+            Customer customer;
+            if (existingCustomer.isPresent()) {
+                // 回写user_id
+                customer = existingCustomer.get();
+                customer.setUserId(user.getId());
+                customerService.save(customer);
+                log.info("客户注册成功（绑定已存在客户）: userId={}, customerId={}, merchantId={}, phone={}",
+                        user.getId(), customer.getId(), merchant.getId(), dto.getPhone());
+            } else {
+                // 创建新customer
+                customer = customerService.createCustomerFromSysUser(user, merchant.getId(), dto);
+                log.info("客户注册成功（创建新客户）: userId={}, customerId={}, merchantId={}, phone={}",
+                        user.getId(), customer.getId(), merchant.getId(), dto.getPhone());
+            }
+
+            // 创建用户-商户关系
+            userMerchantRelationService.createRelation(user.getId(), merchant.getId(), Identity.CUSTOMER);
+
+            return generateLoginResponse(user, merchant.getId(), customer.getId());
         }
 
-        log.info("客户注册成功（创建模板客户）: userId={}, templateCustomerId={}, phone={}",
-                user.getId(), templateCustomer.getId(), dto.getPhone());
+        // 4. 没有邀请码，只创建SysUser，返回用户信息（类似原来的模板客户）
+        log.info("客户注册成功（仅创建用户）: userId={}, phone={}", user.getId(), dto.getPhone());
 
-        // 3. 返回
-        return generateLoginResponse(user, null, templateCustomer.getId());
+        // 返回登录响应（使用SysUser信息，保持接口兼容性）
+        return generateLoginResponseForUnboundUser(user);
 
     }
+
 
     /**
      * 客户扫码绑定商户
@@ -157,35 +201,48 @@ public class AuthService {
                 .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
 
         Long userId = AppSessionContext.getUserId();
-        // 如果当前user已经有存在客户绑定了商家, 不能重复绑定
-        List<Customer> formalByUserId = customerService.findFormalByUserId(userId);
-        if (!CollectionUtils.isEmpty(formalByUserId)){
-            throw new BusinessException(BusinessCode.CUSTOMER_BIND_EXISTS);
-        }
         assert userId != null;
         SysUser user = sysUserRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
 
-        Customer templateCustomer = customerService.findTemplateByUserId(user.getId())
-                .orElseThrow(() -> new BusinessException(BusinessCode.CUSTOMER_NOT_FOUND, "请先完成客户注册"));
-
-        // 2. 处理
-        Optional<Customer> existingCustomer = customerService
-                .findUnregisteredCustomerByPhoneAndMerchantId(templateCustomer.getPhone(), merchant.getId());
-
-        Customer formalCustomer;
-        if (existingCustomer.isPresent()) {
-            formalCustomer = existingCustomer.get();
-            customerService.bindCustomerToUser(formalCustomer.getId(), userId);
-        } else {
-            formalCustomer = customerService.createFormalCustomerFromTemplate(templateCustomer, merchant.getId());
+        // 2. 检查是否已绑定该商户（通过UserMerchantRelation）
+        boolean alreadyBound = userMerchantRelationService.checkRelationExists(
+                userId, merchant.getId(), Identity.CUSTOMER);
+        if (alreadyBound) {
+            throw new BusinessException(BusinessCode.CUSTOMER_BIND_EXISTS, "您已绑定该商户");
         }
 
-        log.info("客户绑定商户成功: userId={}, customerId={}, merchantId={}, templateCustomerId={}",
-                user.getId(), formalCustomer.getId(), merchant.getId(), templateCustomer.getId());
+        // 3. 查找是否有phone相同的customer（商户预先创建的）
+        Optional<Customer> existingCustomer = customerService
+                .findUnregisteredCustomerByPhoneAndMerchantId(user.getPhone(), merchant.getId());
 
-        // 3. 返回
-        return generateLoginResponse(user, merchant.getId(), formalCustomer.getId());
+        Customer customer;
+        if (existingCustomer.isPresent()) {
+            // 回写user_id
+            customer = existingCustomer.get();
+            customer.setUserId(userId);
+            customerService.save(customer);
+            log.info("客户绑定商户成功（绑定已存在客户）: userId={}, customerId={}, merchantId={}, phone={}",
+                    userId, customer.getId(), merchant.getId(), user.getPhone());
+        } else {
+            // 从SysUser创建新customer
+            CustomerRegisterDTO customerRegisterDTO = new CustomerRegisterDTO();
+            customerRegisterDTO.setCustomerName(user.getName());
+            customerRegisterDTO.setPhone(user.getPhone());
+            customerRegisterDTO.setGender(user.getGender());
+            customerRegisterDTO.setAge(user.getAge());
+            customerRegisterDTO.setAddressId(user.getAddressId());
+            customerRegisterDTO.setAddressDetail(user.getAddressDetail());
+            customer = customerService.createCustomerFromSysUser(user, merchant.getId(), customerRegisterDTO);
+            log.info("客户绑定商户成功（创建新客户）: userId={}, customerId={}, merchantId={}, phone={}",
+                    userId, customer.getId(), merchant.getId(), user.getPhone());
+        }
+
+        // 4. 创建用户-商户关系
+        userMerchantRelationService.createRelation(userId, merchant.getId(), Identity.CUSTOMER);
+
+        // 5. 返回
+        return generateLoginResponse(user, merchant.getId(), customer.getId());
     }
 
     /**
@@ -354,22 +411,27 @@ public class AuthService {
      * 处理商户登录
      */
     private LoginVO handleMerchantLogin(SysUser user) {
-        List<Merchant> merchants = merchantService.findByOwnerUserId(user.getId());
+        // 通过UserMerchantRelation查询用户的商户列表
+        List<Long> merchantIds = userMerchantRelationService.findMerchantIdsByUserIdAndIdentity(
+                user.getId(), Identity.OWNER);
 
-        if (merchants.isEmpty()) {
+        if (merchantIds.isEmpty()) {
             log.info("商户登录需要注册: userId={}", user.getId());
             LoginVO response = new LoginVO();
-            response.setUserInfo(buildBaseUserInfo(user.getId(),IdentityType.MERCHANT_OWNER));
+            response.setUserInfo(buildBaseUserInfo(user.getId(), IdentityType.MERCHANT_OWNER));
             response.setNeedRegister(true);
             response.setRegisterType(IdentityType.MERCHANT_OWNER);
             response.setMessage("请完成商户注册");
             return response;
-        } else if (merchants.size() == 1) {
-            Merchant merchant = merchants.get(0);
-            log.info("商户登录直接选中: userId={}, merchantId={}", user.getId(), merchant.getId());
-            return generateLoginResponse(user, merchant.getId(), null);
+        } else if (merchantIds.size() == 1) {
+            Long merchantId = merchantIds.get(0);
+            log.info("商户登录直接选中: userId={}, merchantId={}", user.getId(), merchantId);
+            return generateLoginResponse(user, merchantId, null);
         } else {
-            log.info("商户登录返回列表: userId={}, merchantCount={}", user.getId(), merchants.size());
+            log.info("商户登录返回列表: userId={}, merchantCount={}", user.getId(), merchantIds.size());
+            // 查询商户详情
+            List<Merchant> merchants = merchantService.findByIds(merchantIds);
+            
             // 生成临时token（不含merchantId），用于选择商户
             CurrentUserIdentityInfo userInfo = buildBaseUserInfo(user.getId(), IdentityType.MERCHANT_OWNER);
             String tempToken = tokenUtil.generateTempToken(userInfo);
@@ -389,22 +451,27 @@ public class AuthService {
      * 处理客户登录
      */
     private LoginVO handleCustomerLogin(SysUser user) {
-        List<Customer> customers = customerService.findFormalByUserId(user.getId());
+        // 通过UserMerchantRelation查询用户的客户关系
+        List<UserMerchantRelation> relations = userMerchantRelationService.findByUserIdAndIdentity(
+                user.getId(), Identity.CUSTOMER);
+
+        if (relations.isEmpty()) {
+            // 没有任何客户关系，返回用户信息（类似未绑定商户的状态）
+            log.info("客户登录（未绑定商户）: userId={}", user.getId());
+            return generateLoginResponseForUnboundUser(user);
+        }
+
+        // 查询对应的Customer记录
+        List<Customer> customers = relations.stream()
+                .map(relation -> customerService.findByUserIdAndMerchantId(user.getId(), relation.getMerchantId()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
 
         if (customers.isEmpty()) {
-            // 没有正式客户, 看是否有模板库客户, 可以下发授权, 但是没有商户, 只能修改客户基本信息,不能进行任何其他操作
-            Optional<Customer> templateByUserId = customerService.findTemplateByUserId(user.getId());
-            if (templateByUserId.isPresent()){
-                return generateLoginResponse(user, null, templateByUserId.get().getId());
-            }
-            //没有模板客户, 第一次使用系统, 需要走注册流程
-            log.info("客户登录需要注册: userId={}", user.getId());
-            LoginVO response = new LoginVO();
-            response.setUserInfo(buildBaseUserInfo(user.getId(),IdentityType.CUSTOMER));
-            response.setNeedRegister(true);
-            response.setRegisterType(IdentityType.CUSTOMER);
-            response.setMessage("请完成客户注册");
-            return response;
+            // 有关系但没有customer记录（数据不一致），返回未绑定状态
+            log.warn("客户登录数据不一致: userId={}, 有关系但无customer记录", user.getId());
+            return generateLoginResponseForUnboundUser(user);
         } else if (customers.size() == 1) {
             Customer customer = customers.get(0);
             log.info("客户登录直接选中: userId={}, customerId={}", user.getId(), customer.getId());
@@ -527,6 +594,23 @@ public class AuthService {
             userInfo.setIdentityType(IdentityType.CUSTOMER);
             token = tokenUtil.generateToken(userInfo);
         }
+        return LoginVO.success(token, userInfo, tokenUtil.getExpireTime());
+    }
+
+    /**
+     * 为未绑定商户的用户生成登录响应
+     * 使用SysUser信息，保持与原模板客户接口兼容
+     */
+    private LoginVO generateLoginResponseForUnboundUser(SysUser user) {
+        CurrentUserIdentityInfo userInfo = buildBaseUserInfo(user.getId(), IdentityType.CUSTOMER);
+        userInfo.setId(user.getId());  // 使用userId作为id
+        userInfo.setName(user.getName());
+        userInfo.setPhone(user.getPhone());
+        userInfo.setAddressId(user.getAddressId());
+        userInfo.setAddressDetail(user.getAddressDetail());
+        userInfo.setIdentityType(IdentityType.CUSTOMER);
+
+        String token = tokenUtil.generateToken(userInfo);
         return LoginVO.success(token, userInfo, tokenUtil.getExpireTime());
     }
 }
