@@ -6,7 +6,7 @@ import com.coreledger.config.converter.OperationTypeConverter;
 import com.coreledger.enums.CustomerType;
 import com.coreledger.enums.Gender;
 import com.coreledger.enums.OperationType;
-import com.coreledger.utils.AppSessionContext;
+import com.coreledger.utils.SecurityUtils;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -133,7 +133,7 @@ public class CustomerHistory {
         history.setStatus(1); // 默认状态为启用
         history.setOperationType(operationType);
         history.setOperationTime(customer.getModifyInstant());
-        history.setOperatorId(AppSessionContext.getUserId());
+        history.setOperatorId(SecurityUtils.getCurrentUserId());
         return history;
     }
 }

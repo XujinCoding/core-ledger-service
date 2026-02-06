@@ -119,6 +119,37 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
 
+# Spring Boot Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
 # SMS Configuration
 sms:
   api-url: ${SMS_API_URL}
@@ -137,3 +168,9 @@ tencent:
     path-prefix: ${TENCENT_COS_PATH_PREFIX:images/}
     # 可选: 自定义域名 (CDN 加速)
     # custom-domain: ${TENCENT_COS_CUSTOM_DOMAIN:}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:core-ledger-secret-key-change-this-in-production-environment-minimum-256-bits}
+  expiration: 604800000  # 7 days in milliseconds
+  temp-expiration: 300000  # 5 minutes in milliseconds

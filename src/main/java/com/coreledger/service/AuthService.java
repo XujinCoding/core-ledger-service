@@ -2,6 +2,7 @@ package com.coreledger.service;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
+import com.coreledger.common.mapper.sysuser.SysUserConvert;
 import com.coreledger.dto.auth.*;
 import com.coreledger.entity.Customer;
 import com.coreledger.entity.Merchant;
@@ -12,7 +13,7 @@ import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.exception.UnauthorizedException;
 import com.coreledger.repository.SysUserRepository;
-import com.coreledger.utils.AppSessionContext;
+import com.coreledger.utils.SecurityUtils;
 import com.coreledger.utils.TokenUtil;
 import com.coreledger.utils.WechatUtil;
 import com.coreledger.vo.auth.LoginVO;
@@ -26,7 +27,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -54,6 +54,7 @@ public class AuthService {
     private final MerchantService merchantService;
     private final CustomerService customerService;
     private final SmsService smsService;
+    private final SysUserConvert sysUserConvert;
     private final StringRedisTemplate stringRedisTemplate;
     private final UserMerchantRelationService userMerchantRelationService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -200,7 +201,7 @@ public class AuthService {
         Merchant merchant = merchantService.findByInviteCode(dto.getInviteCode())
                 .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
 
-        Long userId = AppSessionContext.getUserId();
+        Long userId = SecurityUtils.getCurrentUserId();
         assert userId != null;
         SysUser user = sysUserRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
@@ -251,7 +252,7 @@ public class AuthService {
     @Transactional(rollbackFor = Exception.class)
     public LoginVO switchIdentity(SwitchIdentityDTO dto) {
         // 1. 获取数据
-        SysUser user = sysUserRepository.findById(AppSessionContext.getUserId())
+        SysUser user = sysUserRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
 
         // 2. 校验并处理
@@ -308,7 +309,8 @@ public class AuthService {
      * 获取当前用户信息
      */
     public CurrentUserIdentityInfo getCurrentUser() {
-        CurrentUserIdentityInfo userInfo = tokenUtil.getCurrentUserIdentityInfo(AppSessionContext.getToken());
+        CurrentUserIdentityInfo userInfo = sysUserConvert.toInfo(SecurityUtils.getCurrentUser());
+
 
         if (userInfo == null) {
             throw new UnauthorizedException();
@@ -322,14 +324,14 @@ public class AuthService {
      */
     public UserIdentitiesVO getUserIdentities() {
         // 1. 获取数据
-        SysUser user = sysUserRepository.findById(AppSessionContext.getUserId())
+        SysUser user = sysUserRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
 
         UserIdentitiesVO response = new UserIdentitiesVO();
         response.setUserId(user.getId());
 
         // 2. 处理
-        IdentityType identityType = AppSessionContext.getIdentityType();
+        IdentityType identityType = SecurityUtils.getCurrentIdentityType();
         if (Objects.equals(identityType, IdentityType.MERCHANT_OWNER)) {
             List<Merchant> merchants = merchantService.findByOwnerUserId(user.getId());
             response.setMerchants(merchants);
@@ -413,7 +415,7 @@ public class AuthService {
     private LoginVO handleMerchantLogin(SysUser user) {
         // 通过UserMerchantRelation查询用户的商户列表
         List<Long> merchantIds = userMerchantRelationService.findMerchantIdsByUserIdAndIdentity(
-                user.getId(), Identity.OWNER);
+                user.getId(), List.of(Identity.OWNER,Identity.EMPLOYEE));
 
         if (merchantIds.isEmpty()) {
             log.info("商户登录需要注册: userId={}", user.getId());
@@ -453,7 +455,7 @@ public class AuthService {
     private LoginVO handleCustomerLogin(SysUser user) {
         // 通过UserMerchantRelation查询用户的客户关系
         List<UserMerchantRelation> relations = userMerchantRelationService.findByUserIdAndIdentity(
-                user.getId(), Identity.CUSTOMER);
+                user.getId(), List.of(Identity.CUSTOMER));
 
         if (relations.isEmpty()) {
             // 没有任何客户关系，返回用户信息（类似未绑定商户的状态）
@@ -554,7 +556,6 @@ public class AuthService {
         if (merchantId != null && customerId == null) {
             // 商户登录
             userInfo = buildBaseUserInfo(user.getId(),IdentityType.MERCHANT_OWNER);
-            userInfo.setId(merchantId);
             userInfo.setMerchantId(merchantId);
             Merchant merchant = merchantService.findById(merchantId)
                     .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
@@ -563,35 +564,32 @@ public class AuthService {
             userInfo.setPhone(merchant.getPhone());
             userInfo.setAddressId(merchant.getAddressId());
             userInfo.setAddressDetail(merchant.getAddressDetail());
-            userInfo.setIdentityType(IdentityType.MERCHANT_OWNER);
             token = tokenUtil.generateToken(userInfo);
         } else if (merchantId != null) {
             // 正式客户登录
             userInfo = buildBaseUserInfo(user.getId(),IdentityType.CUSTOMER);
             Customer customer = customerService.findById(customerId)
                     .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
-            userInfo.setId(customerId);
+            userInfo.setCustomerId(customerId);
             userInfo.setMerchantId(merchantId);
             userInfo.setName(customer.getName());
             userInfo.setCode(customer.getCode());
             userInfo.setPhone(customer.getPhone());
             userInfo.setAddressId(customer.getAddressId());
             userInfo.setAddressDetail(customer.getAddressDetail());
-            userInfo.setIdentityType(IdentityType.CUSTOMER);
             token = tokenUtil.generateToken(userInfo);
         }else if (customerId != null) {
-            // 模板客户登录
+            // 客户登录
             userInfo = buildBaseUserInfo(user.getId(),IdentityType.CUSTOMER);
             userInfo.setIdentityType(IdentityType.CUSTOMER);
             Customer customer = customerService.findById(customerId)
                     .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
-            userInfo.setId(customerId);
+            userInfo.setCustomerId(customerId);
             userInfo.setName(customer.getName());
             userInfo.setCode(customer.getCode());
             userInfo.setPhone(customer.getPhone());
             userInfo.setAddressId(customer.getAddressId());
             userInfo.setAddressDetail(customer.getAddressDetail());
-            userInfo.setIdentityType(IdentityType.CUSTOMER);
             token = tokenUtil.generateToken(userInfo);
         }
         return LoginVO.success(token, userInfo, tokenUtil.getExpireTime());
@@ -603,12 +601,11 @@ public class AuthService {
      */
     private LoginVO generateLoginResponseForUnboundUser(SysUser user) {
         CurrentUserIdentityInfo userInfo = buildBaseUserInfo(user.getId(), IdentityType.CUSTOMER);
-        userInfo.setId(user.getId());  // 使用userId作为id
+        userInfo.setUserId(user.getId());  // 使用userId作为id
         userInfo.setName(user.getName());
         userInfo.setPhone(user.getPhone());
         userInfo.setAddressId(user.getAddressId());
         userInfo.setAddressDetail(user.getAddressDetail());
-        userInfo.setIdentityType(IdentityType.CUSTOMER);
 
         String token = tokenUtil.generateToken(userInfo);
         return LoginVO.success(token, userInfo, tokenUtil.getExpireTime());

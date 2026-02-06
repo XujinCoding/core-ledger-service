@@ -1,7 +1,7 @@
 package com.coreledger.service;
 
 import com.coreledger.common.mapper.product.ProductCategoryConverter;
-import com.coreledger.utils.AppSessionContext;
+import com.coreledger.utils.SecurityUtils;
 import com.coreledger.utils.specification.PredicateBuilder;
 import com.coreledger.dto.product.CategoryCreateDTO;
 import com.coreledger.dto.product.CategoryUpdateDTO;
@@ -52,7 +52,7 @@ public class ProductCategoryService {
     @Transactional
     public CategoryVO createCategory(CategoryCreateDTO dto) {
         // 获取当前商户ID
-        Long merchantId = AppSessionContext.getMerchantId();
+        Long merchantId = SecurityUtils.getCurrentMerchantId();
         if (merchantId == null) {
             throw new BusinessException(BusinessCode.INVALID_PARAMETER, "商户ID不能为空");
         }
@@ -156,7 +156,7 @@ public class ProductCategoryService {
     }
 
     private @NotNull ProductCategory getAndCheckCategory(Long id) {
-        Long merchantId = AppSessionContext.getMerchantId();
+        Long merchantId = SecurityUtils.getCurrentMerchantId();
         if (merchantId == null) {
             throw new BusinessException(BusinessCode.INVALID_PARAMETER, "商户ID不能为空");
         }
@@ -179,7 +179,7 @@ public class ProductCategoryService {
     public List<CategoryTreeVO> getCategoryTree() {
         List<ProductCategory> allCategories = categoryRepository.findAll(
                 PredicateBuilder.<ProductCategory>and()
-                        .equal("merchantId", AppSessionContext.getMerchantId())
+                        .equal("merchantId", SecurityUtils.getCurrentMerchantId())
                         .equal("status", Status.ACTIVE)
                         .build()
         );

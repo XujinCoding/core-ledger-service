@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.coreledger.mapper.ProductSkuMapper">
+
+    <!-- 根据SKU名称、定价状态、商户ID查询SKU列表 -->
+    <select id="findBySkuNameAndMerchant" resultType="com.coreledger.entity.ProductSku">
+        SELECT ps.*
+        FROM product_sku ps
+        INNER JOIN product p ON ps.product_id = p.id
+        WHERE LOWER(ps.sku_name) LIKE CONCAT('%', LOWER(#{skuName}), '%')
+          AND ps.price_status = #{priceStatus}
+          AND ps.status = #{status}
+          AND p.merchant_id = #{merchantId}
+        ORDER BY ps.sort_order ASC
+    </select>
+
+</mapper>

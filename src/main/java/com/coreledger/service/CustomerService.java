@@ -15,7 +15,7 @@ import com.coreledger.enums.*;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.repository.*;
-import com.coreledger.utils.AppSessionContext;
+import com.coreledger.utils.SecurityUtils;
 import com.coreledger.utils.specification.PredicateBuilder;
 import com.coreledger.vo.customer.CustomerListStatsVO;
 import com.coreledger.vo.customer.CustomerStatsVO;
@@ -76,7 +76,7 @@ public class CustomerService {
 
         // 2. 如果修改了手机号，校验手机号是否已被其他客户使用
         if (StrUtil.isNotBlank(dto.getPhone()) && !Objects.equals(dto.getPhone(), customer.getPhone())) {
-            customerRepository.findByPhoneAndMerchantId(dto.getPhone(),AppSessionContext.getMerchantId()).ifPresent(existingCustomer -> {
+            customerRepository.findByPhoneAndMerchantId(dto.getPhone(),SecurityUtils.getCurrentMerchantId()).ifPresent(existingCustomer -> {
                 if (!Objects.equals(existingCustomer.getId(), id)) {
                     throw new BusinessException(BusinessCode.CUSTOMER_PHONE_EXISTS);
                 }
@@ -160,7 +160,7 @@ public class CustomerService {
         Specification<Customer> spec = PredicateBuilder.<Customer>and()
                 .like(StrUtil::isNotBlank, "name", dto.getName())
                 .like(StrUtil::isNotBlank, "phone", dto.getPhone())
-                .equal("merchantId", AppSessionContext.getMerchantId())
+                .equal("merchantId", SecurityUtils.getCurrentMerchantId())
                 .in("addressId", addressIds)
                 .build();
 
@@ -340,7 +340,7 @@ public class CustomerService {
      * @return 客户总数
      */
     public Long countCustomers() {
-        Long merchantId = AppSessionContext.getMerchantId();
+        Long merchantId = SecurityUtils.getCurrentMerchantId();
         return customerRepository.countByMerchantId(merchantId);
     }
 
@@ -362,7 +362,7 @@ public class CustomerService {
         Specification<Customer> spec = PredicateBuilder.<Customer>and()
                 .like(StrUtil::isNotBlank, "name", dto.getName())
                 .like(StrUtil::isNotBlank, "phone", dto.getPhone())
-                .equal("merchantId", AppSessionContext.getMerchantId())
+                .equal("merchantId", SecurityUtils.getCurrentMerchantId())
                 .in("addressId", addressIds)
                 .build();
 
@@ -377,7 +377,7 @@ public class CustomerService {
      * @throws NotFoundException 当用户不存在时抛出 (BusinessCode.USER_NOT_FOUND)
      */
     public CustomerVO getProfile() {
-        Long userId = AppSessionContext.getUserId();
+        Long userId = SecurityUtils.getCurrentUserId();
         SysUser user = sysUserRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.USER_NOT_FOUND));
 
@@ -422,7 +422,7 @@ public class CustomerService {
      */
     @Transactional
     public CustomerVO updateProfile(CustomerProfileUpdateDTO dto) {
-        Long userId = AppSessionContext.getUserId();
+        Long userId = SecurityUtils.getCurrentUserId();
 
         // 1. 查询SysUser
         SysUser user = sysUserRepository.findById(userId)

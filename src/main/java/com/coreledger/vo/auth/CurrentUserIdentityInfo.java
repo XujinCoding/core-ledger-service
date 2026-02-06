@@ -18,8 +18,8 @@ public class CurrentUserIdentityInfo {
      * customer.id / merchant.id 根据身份确定
      *
      */
-    @Schema(description = "标识", example = "1")
-    private Long id;
+    @Schema(description = "客户标识", example = "1")
+    private Long customerId;
     /**
      * 用户ID
      */

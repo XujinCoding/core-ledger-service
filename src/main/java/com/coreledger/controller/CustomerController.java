@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -39,6 +40,7 @@ public class CustomerController {
      */
     @Operation(summary = "获取个人信息", description = "获取当前登录客户的个人信息")
     @GetMapping("/profile")
+    @PreAuthorize("@authz.isCustomer()") // 只有客户可以访问
     public Result<CustomerVO> getProfile() {
         return Result.success(customerService.getProfile());
     }
@@ -48,6 +50,7 @@ public class CustomerController {
      */
     @Operation(summary = "修改个人信息", description = "客户修改个人信息")
     @PutMapping("/profile")
+    @PreAuthorize("@authz.isCustomer()") // 只有客户可以修改自己的信息
     public Result<CustomerVO> updateProfile(@Valid @RequestBody CustomerProfileUpdateDTO dto) {
         return Result.success(customerService.updateProfile(dto));
     }

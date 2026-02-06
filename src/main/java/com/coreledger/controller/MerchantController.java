@@ -7,7 +7,7 @@ import com.coreledger.dto.merchant.UpdateMerchantDTO;
 import com.coreledger.service.CustomerService;
 import com.coreledger.service.MerchantService;
 import com.coreledger.service.MerchantStatsService;
-import com.coreledger.utils.AppSessionContext;
+import com.coreledger.utils.SecurityUtils;
 import com.coreledger.vo.customer.CustomerVO;
 import com.coreledger.vo.merchant.MerchantOverviewVO;
 import com.coreledger.vo.merchant.MerchantStatsVO;
@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/merchant")
 @RequiredArgsConstructor
 @Tag(name = "商户管理", description = "商户相关接口")
+@PreAuthorize("@authz.isMerchantOwner()") // 类级别权限: 只有商户所有者可以访问
 public class MerchantController {
 
     private final MerchantService merchantService;
@@ -96,6 +98,6 @@ public class MerchantController {
     @PostMapping("/create")
     @Operation(summary = "创建店铺", description = "在当前用户名下创建新店铺")
     public Result<MerchantVO> createMerchant(@RequestBody MerchantRegisterDTO dto) {
-        return Result.success(merchantService.createMerchant(dto, AppSessionContext.getUserId()));
+        return Result.success(merchantService.createMerchant(dto, SecurityUtils.getCurrentUserId()));
     }
 }

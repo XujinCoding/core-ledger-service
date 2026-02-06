@@ -9,7 +9,9 @@ import com.coreledger.enums.PriceStatus;
 import com.coreledger.enums.Status;
 import com.coreledger.exception.BusinessException;
 import com.coreledger.exception.NotFoundException;
+import com.coreledger.mapper.ProductSkuMapper;
 import com.coreledger.repository.*;
+import com.coreledger.utils.SecurityUtils;
 import com.coreledger.vo.product.ProductSkuVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,7 @@ import java.util.stream.Collectors;
 public class ProductSkuService {
 
     private final ProductSkuRepository skuRepository;
+    private final ProductSkuMapper skuMapper;
     private final ProductSkuAttrRepository skuAttrRepository;
     private final ProductRepository productRepository;
     private final ProductAttrRepository attrRepository;
@@ -49,9 +52,13 @@ public class ProductSkuService {
 
 
     public List<ProductSkuVO> searchPricedSkusByName(String skuName) {
-        List<ProductSku> skus = skuRepository
-            .findBySkuNameContainingIgnoreCaseAndPriceStatusAndStatusOrderBySortOrderAsc(
-                skuName, PriceStatus.PRICED, Status.ACTIVE);
+        // 获取当前登录商户ID
+        Long merchantId = SecurityUtils.getCurrentMerchantId();
+        
+        // 使用XML查询，根据商户过滤
+        List<ProductSku> skus = skuMapper.findBySkuNameAndMerchant(
+            skuName, PriceStatus.PRICED, Status.ACTIVE, merchantId);
+        
         return skus.stream()
             .map(sku -> {
                 ProductSkuVO vo = skuConverter.toVO(sku);

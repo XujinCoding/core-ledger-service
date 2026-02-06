@@ -4,7 +4,8 @@ import cn.hutool.core.util.StrUtil;
 import com.coreledger.common.mapper.product.ProductConverter;
 import com.coreledger.common.mapper.product.ProductAttrConverter;
 import com.coreledger.common.mapper.product.ProductSkuConverter;
-import com.coreledger.utils.AppSessionContext;
+import com.coreledger.config.CacheConfig;
+import com.coreledger.utils.SecurityUtils;
 import com.coreledger.utils.specification.PredicateBuilder;
 import com.coreledger.dto.product.ProductCreateDTO;
 import com.coreledger.dto.product.ProductUpdateDTO;
@@ -21,6 +22,8 @@ import com.coreledger.repository.ProductSkuRepository;
 import com.coreledger.vo.product.ProductVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -69,7 +72,7 @@ public class ProductService {
 
         // 创建商品
         Product product = productConverter.toEntity(dto);
-        product.setMerchantId(AppSessionContext.getMerchantId());
+        product.setMerchantId(SecurityUtils.getCurrentMerchantId());
         product.setStatus(Status.ACTIVE);
         product = productRepository.save(product);
         
@@ -88,6 +91,7 @@ public class ProductService {
      * @throws NotFoundException 当商品不存在时抛出
      */
     @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_PRODUCTS, key = "#id")
     public ProductVO updateProduct(Long id, ProductUpdateDTO dto) {
         Product product = productRepository.findById(id)
             .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_NOT_FOUND));
@@ -106,6 +110,7 @@ public class ProductService {
      * @throws NotFoundException 当商品不存在时抛出
      */
     @Transactional
+    @CacheEvict(value = CacheConfig.CACHE_PRODUCTS, key = "#id")
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
             .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_NOT_FOUND));
@@ -138,6 +143,7 @@ public class ProductService {
      * @return 商品VO
      * @throws NotFoundException 当商品不存在时抛出
      */
+    @Cacheable(value = CacheConfig.CACHE_PRODUCTS, key = "#id", unless = "#result == null")
     public ProductVO getProduct(Long id) {
         Product product = productRepository.findById(id)
             .orElseThrow(() -> new NotFoundException(BusinessCode.PRODUCT_NOT_FOUND));
@@ -163,7 +169,7 @@ public class ProductService {
         final List<Long> finalCategoryIds = categoryIds;
         Specification<Product> spec = PredicateBuilder.<Product>and()
             .equal("status", Status.ACTIVE)
-            .equal("merchantId", AppSessionContext.getMerchantId())
+            .equal("merchantId", SecurityUtils.getCurrentMerchantId())
             .in("categoryId", finalCategoryIds)
             .like(StrUtil::isNotBlank, "name", keyword)
             .build();

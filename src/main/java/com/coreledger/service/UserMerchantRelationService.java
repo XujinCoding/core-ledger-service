@@ -63,12 +63,12 @@ public class UserMerchantRelationService {
      * 查询用户在特定身份下的所有商户ID列表
      *
      * @param userId   用户ID
-     * @param identity 身份
+     * @param identitys 身份列表
      * @return 商户ID列表
      */
-    public List<Long> findMerchantIdsByUserIdAndIdentity(Long userId, Identity identity) {
+    public List<Long> findMerchantIdsByUserIdAndIdentity(Long userId, List<Identity> identitys) {
         List<UserMerchantRelation> relations = relationRepository
-                .findByUserIdAndIdentityAndStatus(userId, identity, Status.ACTIVE);
+                .findByUserIdAndIdentityInAndStatus(userId, identitys, Status.ACTIVE);
 
         return relations.stream()
                 .map(UserMerchantRelation::getMerchantId)
@@ -79,11 +79,11 @@ public class UserMerchantRelationService {
      * 查询用户在特定身份下的所有关系
      *
      * @param userId   用户ID
-     * @param identity 身份
+     * @param identitys 身份
      * @return 关系列表
      */
-    public List<UserMerchantRelation> findByUserIdAndIdentity(Long userId, Identity identity) {
-        return relationRepository.findByUserIdAndIdentityAndStatus(userId, identity, Status.ACTIVE);
+    public List<UserMerchantRelation> findByUserIdAndIdentity(Long userId, List<Identity> identitys) {
+        return relationRepository.findByUserIdAndIdentityInAndStatus(userId, identitys, Status.ACTIVE);
     }
 
     /**

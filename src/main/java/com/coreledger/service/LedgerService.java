@@ -5,8 +5,9 @@ import com.coreledger.common.PageQueryResult;
 import com.coreledger.common.mapper.ledger.LedgerConverter;
 import com.coreledger.common.mapper.ledger.LedgerItemConverter;
 import com.coreledger.common.mapper.ledger.PaymentRecordConverter;
+import com.coreledger.config.CustomMetrics;
 import com.coreledger.dto.ledger.*;
-import com.coreledger.utils.AppSessionContext;
+import com.coreledger.utils.SecurityUtils;
 import com.coreledger.vo.LedgerListStatsVO;
 import com.coreledger.vo.LedgerListVO;
 import com.coreledger.entity.Customer;
@@ -64,6 +65,7 @@ public class LedgerService {
     private final LedgerItemConverter ledgerItemConverter;
     private final PaymentRecordConverter paymentRecordConverter;
     private final LedgerMapper ledgerMapper;
+    private final CustomMetrics customMetrics;
 
     /**
      * 新增账单
@@ -74,30 +76,32 @@ public class LedgerService {
      */
     @Transactional
     public LedgerVO createLedger(CreateLedgerDTO dto) {
+        long startTime = System.currentTimeMillis();
         log.info("创建账单，客户ID: {}", dto.getCustomerId());
 
-        // 1. 校验客户是否存在
-        Customer customer = customerRepository.findById(dto.getCustomerId())
-                .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
+        try {
+            // 1. 校验客户是否存在
+            Customer customer = customerRepository.findById(dto.getCustomerId())
+                    .orElseThrow(() -> new NotFoundException(BusinessCode.CUSTOMER_NOT_FOUND));
 
-        // 2. 创建账单主表
-        Ledger ledger = new Ledger();
-        ledger.setCustomerId(dto.getCustomerId());
-        ledger.setLedgerStatus(LedgerStatus.IN_PROGRESS);
-        ledger.setTotalAmount(BigDecimal.ZERO);
-        ledger.setPaidAmount(BigDecimal.ZERO);
-        ledger.setDiscountAmount(BigDecimal.ZERO);
-        ledger.setMerchantId(dto.getMerchantId());
-        ledger = ledgerRepository.save(ledger);
+            // 2. 创建账单主表
+            Ledger ledger = new Ledger();
+            ledger.setCustomerId(dto.getCustomerId());
+            ledger.setLedgerStatus(LedgerStatus.IN_PROGRESS);
+            ledger.setTotalAmount(BigDecimal.ZERO);
+            ledger.setPaidAmount(BigDecimal.ZERO);
+            ledger.setDiscountAmount(BigDecimal.ZERO);
+            ledger.setMerchantId(dto.getMerchantId());
+            ledger = ledgerRepository.save(ledger);
 
-        // 3. 创建明细（如果有）
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        if (CollUtil.isNotEmpty(dto.getItems())) {
-            for (LedgerItemDTO itemDTO : dto.getItems()) {
-                LedgerItem item = ledgerItemConverter.toEntity(itemDTO);
-                item.setLedgerId(ledger.getId());
-                item.setStatus(Status.ACTIVE);
-                ledgerItemRepository.save(item);
+            // 3. 创建明细（如果有）
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            if (CollUtil.isNotEmpty(dto.getItems())) {
+                for (LedgerItemDTO itemDTO : dto.getItems()) {
+                    LedgerItem item = ledgerItemConverter.toEntity(itemDTO);
+                    item.setLedgerId(ledger.getId());
+                    item.setStatus(Status.ACTIVE);
+                    ledgerItemRepository.save(item);
                 totalAmount = totalAmount.add(itemDTO.getAmount());
             }
 
@@ -107,7 +111,16 @@ public class LedgerService {
         }
 
         log.info("账单创建成功，账单ID: {}, 总金额: {}", ledger.getId(), totalAmount);
+
+        // Track metrics
+        customMetrics.incrementLedgerCreated();
+        customMetrics.recordLedgerProcessingTime(System.currentTimeMillis() - startTime);
+
         return buildLedgerVO(ledger, customer.getName());
+        } catch (Exception e) {
+            customMetrics.recordLedgerProcessingTime(System.currentTimeMillis() - startTime);
+            throw e;
+        }
     }
 
     /**
@@ -386,7 +399,7 @@ public class LedgerService {
      */
     public PageQueryResult<LedgerListVO> searchLedgers(LedgerSearchDTO condition) {
         try (var page = PageHelper.startPage(condition.getPageNumber(), condition.getPageSize())) {
-            condition.setMerchantId(AppSessionContext.getMerchantId());
+            condition.setMerchantId(SecurityUtils.getCurrentMerchantId());
             List<LedgerListVO> list = ledgerMapper.searchLedgers(condition);
             PageInfo<LedgerListVO> result = new PageInfo<>(list);
             return new PageQueryResult<>(list,result.getPages(), result.getTotal());
@@ -404,7 +417,7 @@ public class LedgerService {
 
         // 使用 PredicateBuilder 构建查询条件
         Specification<Ledger> spec = PredicateBuilder.<Ledger>and()
-                .equal("merchantId",AppSessionContext.getMerchantId())
+                .equal("merchantId",SecurityUtils.getCurrentMerchantId())
                 .in("ledgerStatus", List.of(LedgerStatus.IN_PROGRESS,LedgerStatus.PARTIAL))
                 .build();
 
@@ -459,7 +472,7 @@ public class LedgerService {
      */
     public LedgerListStatsVO getLedgerListStats(LedgerSearchDTO dto) {
         log.info("获取账单列表统计，条件: {}", dto);
-        dto.setMerchantId(AppSessionContext.getMerchantId());
+        dto.setMerchantId(SecurityUtils.getCurrentMerchantId());
         return ledgerMapper.statsLedgers(dto);
     }
 

@@ -70,6 +70,6 @@ public interface UserMerchantRelationRepository extends JpaRepository<UserMercha
      * @param status   状态
      * @return 关系列表
      */
-    List<UserMerchantRelation> findByUserIdAndIdentityAndStatus(
-            Long userId, Identity identity, Status status);
+    List<UserMerchantRelation> findByUserIdAndIdentityInAndStatus(
+            Long userId, List<Identity> identitys, Status status);
 }

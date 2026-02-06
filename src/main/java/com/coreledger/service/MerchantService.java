@@ -1,6 +1,7 @@
 package com.coreledger.service;
 
 import com.coreledger.common.mapper.merchant.MerchantConverter;
+import com.coreledger.config.CacheConfig;
 import com.coreledger.dto.auth.MerchantRegisterDTO;
 import com.coreledger.dto.merchant.UpdateMerchantDTO;
 import com.coreledger.entity.Merchant;
@@ -10,10 +11,12 @@ import com.coreledger.enums.Status;
 import com.coreledger.exception.NotFoundException;
 import com.coreledger.repository.MerchantRepository;
 import com.coreledger.repository.SysAddressRepository;
-import com.coreledger.utils.AppSessionContext;
+import com.coreledger.utils.SecurityUtils;
 import com.coreledger.vo.merchant.MerchantVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,7 +72,7 @@ public class MerchantService {
         merchant.setQrCodeUrl(qrCodeUrl);
         
         merchant = merchantRepository.save(merchant);
-        userMerchantRelationService.createRelation(AppSessionContext.getUserId(),merchant.getId(), Identity.OWNER);
+        userMerchantRelationService.createRelation(SecurityUtils.getCurrentUserId(),merchant.getId(), Identity.OWNER);
         log.info("创建商户成功: merchantId={}, merchantNo={}", merchant.getId(), merchantNo);
         
         return toVOWithAddressPath(merchant);
@@ -85,6 +88,7 @@ public class MerchantService {
     /**
      * 根据ID查询商户
      */
+    @Cacheable(value = CacheConfig.CACHE_MERCHANTS, key = "#merchantId", unless = "#result == null")
     public Optional<Merchant> findById(Long merchantId) {
         return merchantRepository.findById(merchantId);
     }
@@ -128,6 +132,7 @@ public class MerchantService {
      * @return 更新后的商户VO
      */
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = CacheConfig.CACHE_MERCHANTS, key = "#merchantId")
     public MerchantVO updateMerchant(Long merchantId, UpdateMerchantDTO dto) {
         Merchant merchant = merchantRepository.findById(merchantId)
                 .orElseThrow(() -> new NotFoundException(BusinessCode.MERCHANT_NOT_FOUND));
