@@ -72,7 +72,7 @@ public class MerchantService {
         merchant.setQrCodeUrl(qrCodeUrl);
         
         merchant = merchantRepository.save(merchant);
-        userMerchantRelationService.createRelation(SecurityUtils.getCurrentUserId(),merchant.getId(), Identity.OWNER);
+        userMerchantRelationService.createRelation(ownerUserId,merchant.getId(), Identity.OWNER);
         log.info("创建商户成功: merchantId={}, merchantNo={}", merchant.getId(), merchantNo);
         
         return toVOWithAddressPath(merchant);
