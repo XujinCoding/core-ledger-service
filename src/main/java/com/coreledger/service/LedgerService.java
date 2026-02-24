@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Base64;
 
 /**
  * 账本业务服务类
@@ -66,6 +67,7 @@ public class LedgerService {
     private final PaymentRecordConverter paymentRecordConverter;
     private final LedgerMapper ledgerMapper;
     private final CustomMetrics customMetrics;
+    private final FileUploadService fileUploadService;
 
     /**
      * 新增账单
@@ -234,6 +236,12 @@ public class LedgerService {
         // 校验
         Ledger ledger = getLedgerById(ledgerId);
         validateRecordLedger(ledger, dto);
+
+        // 处理签名图片
+        if (dto.getSignatureImage() != null && !dto.getSignatureImage().isEmpty()) {
+            String signatureUrl = saveSignatureImage(ledgerId, dto.getSignatureImage());
+            ledger.setSignatureImageUrl(signatureUrl);
+        }
 
         // 操作
         if (dto.getPaymentAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -560,7 +568,7 @@ public class LedgerService {
      */
     private void validateRecordLedger(Ledger ledger, RecordLedgerDTO dto) {
         // 校验账单状态（只有进行中的账单可以记账）
-        if (!LedgerStatus.IN_PROGRESS.equals(ledger.getLedgerStatus())) {
+        if (!LedgerStatus.IN_PROGRESS.equals(ledger.getLedgerStatus()) && !LedgerStatus.PARTIAL.equals(ledger.getLedgerStatus())) {
             throw new BusinessException(BusinessCode.LEDGER_STATUS_NOT_ALLOWED);
         }
 
@@ -678,10 +686,63 @@ public class LedgerService {
             // 已结清
             ledger.setLedgerStatus(LedgerStatus.CLEARED);
             log.info("账单已结清，账单ID: {}", ledger.getId());
-        } else if (ledger.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+        } else {
             // 有支付记录但未结清，状态为赊账中
             ledger.setLedgerStatus(LedgerStatus.ON_CREDIT);
             log.info("账单赊账中，账单ID: {}, 剩余: {}", ledger.getId(), remaining);
+        }
+    }
+
+    /**
+     * 保存签名图片
+     *
+     * @param ledgerId 账单ID
+     * @param signatureImage 签名图片（base64编码）
+     * @return 签名图片URL
+     */
+    private String saveSignatureImage(Long ledgerId, String signatureImage) {
+        try {
+            // 检查是否为base64格式
+            if (signatureImage == null || signatureImage.isEmpty()) {
+                log.warn("签名图片为空，账单ID: {}", ledgerId);
+                return null;
+            }
+
+            // 解析base64数据
+            String base64Data = signatureImage;
+            if (signatureImage.startsWith("data:image")) {
+                // 移除 data:image/png;base64, 前缀
+                int commaIndex = signatureImage.indexOf(",");
+                if (commaIndex > 0) {
+                    base64Data = signatureImage.substring(commaIndex + 1);
+                }
+            }
+
+            // 解码base64
+            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+
+            // 生成文件名
+            String fileName = "signature_" + ledgerId + "_" + System.currentTimeMillis() + ".png";
+
+            // 上传到COS，使用自定义路径前缀
+            String objectKey = fileUploadService.uploadBytes(
+                imageBytes,
+                fileName,
+                "image/png",
+                "signatures/"
+            );
+
+            log.info("签名图片上传成功，账单ID: {}, objectKey: {}", ledgerId, objectKey);
+
+            // 返回对象键（路径），前端可以通过API获取预签名URL
+            return objectKey;
+
+        } catch (IllegalArgumentException e) {
+            log.error("Base64解码失败，账单ID: {}", ledgerId, e);
+            throw new BusinessException(BusinessCode.INVALID_PARAMETER, "签名图片格式错误");
+        } catch (Exception e) {
+            log.error("保存签名图片失败，账单ID: {}", ledgerId, e);
+            throw new BusinessException(BusinessCode.INTERNAL_ERROR, "保存签名图片失败: " + e.getMessage());
         }
     }
 }

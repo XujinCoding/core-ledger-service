@@ -54,6 +54,10 @@ public class Ledger extends BaseEntity {
     @Convert(converter = LedgerStatusConverter.class)
     private LedgerStatus ledgerStatus = LedgerStatus.IN_PROGRESS;
 
+    /** 签名图片路径 */
+    @Column(name = "signature_image_url", length = 500)
+    private String signatureImageUrl;
+
     /** 账本明细列表 */
     @OneToMany(mappedBy = "ledgerId", fetch = FetchType.LAZY)
     @ToString.Exclude

@@ -28,4 +28,7 @@ public class RecordLedgerDTO {
     /** 备注 */
     @Size(max = 255, message = "备注长度不能超过255个字符")
     private String memo;
+
+    /** 签名图片（base64编码或文件路径）*/
+    private String signatureImage;
 }
