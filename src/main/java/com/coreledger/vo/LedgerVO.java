@@ -49,6 +49,9 @@ public class LedgerVO {
     /** 支付记录列表 */
     private List<PaymentRecordVO> paymentRecords;
 
+    /** 签名图片 */
+    private String signatureImageUrl;
+
     /** 备注 */
     private String memo;
 
